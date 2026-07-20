@@ -1,17 +1,13 @@
-"""
-Detect speed tier changes and compute effective speed tier per unit-month.
-"""
 import os
 import pandas as pd
 import numpy as np
-from config import DATA_DIR, MONTHS, SPEED_TIER_VARIATION_THRESH, OUTPUT_DIR
+from config import PROCESSED_DIR, MONTHS, SPEED_TIER_VARIATION_THRESH, OUTPUT_DIR
 
 def main():
-    tcp = pd.read_parquet(os.path.join(DATA_DIR, "processed", "tcp.parquet"))
-    meta = pd.read_parquet(os.path.join(DATA_DIR, "processed", "meta.parquet"))
+    tcp = pd.read_parquet(os.path.join(PROCESSED_DIR, "tcp.parquet"))
+    meta = pd.read_parquet(os.path.join(PROCESSED_DIR, "meta.parquet"))
 
-    tcp["ts"] = pd.to_datetime(tcp["timestamp"])
-    tcp["day"] = tcp["ts"].dt.day
+    tcp["day"] = tcp["dtime"].dt.day
 
     valid_units = []
 
@@ -33,7 +29,7 @@ def main():
     print(f"Connection-months: {len(df)}")
 
     meta_out = meta.merge(df, on="unit_id", how="inner")
-    meta_out.to_parquet(os.path.join(DATA_DIR, "processed", "meta_valid.parquet"))
+    meta_out.to_parquet(os.path.join(PROCESSED_DIR, "meta_valid.parquet"))
     print("Saved meta_valid.parquet")
 
 if __name__ == "__main__":

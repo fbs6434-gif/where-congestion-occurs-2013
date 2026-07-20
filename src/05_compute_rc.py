@@ -4,11 +4,11 @@ Compute Recurrent Congestion (RC) per unit-month.
 import os
 import pandas as pd
 import numpy as np
-from config import DATA_DIR, RC_Q, RC_T, OUTPUT_DIR
+from config import PROCESSED_DIR, RC_Q, RC_T, OUTPUT_DIR
 
 def main():
-    aligned = pd.read_parquet(os.path.join(DATA_DIR, "processed", "aligned.parquet"))
-    meta = pd.read_parquet(os.path.join(DATA_DIR, "processed", "meta_valid.parquet"))
+    aligned = pd.read_parquet(os.path.join(PROCESSED_DIR, "aligned.parquet"))
+    meta = pd.read_parquet(os.path.join(PROCESSED_DIR, "meta_valid.parquet"))
 
     aligned = aligned.merge(meta[["unit_id", "month", "speed_tier"]], on=["unit_id", "month"])
 
@@ -32,7 +32,7 @@ def main():
     print(f"RC records: {len(df)}")
     print(f"RC prevalence: {df['rc'].mean():.2%}")
 
-    df.to_parquet(os.path.join(DATA_DIR, "processed", "rc.parquet"))
+    df.to_parquet(os.path.join(PROCESSED_DIR, "rc.parquet"))
     print("Saved rc.parquet")
 
 if __name__ == "__main__":

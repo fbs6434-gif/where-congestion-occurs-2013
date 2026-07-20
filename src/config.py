@@ -1,11 +1,11 @@
 import os
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA_DIR = os.path.join(BASE_DIR, "data", "raw")
+RAW_DIR = os.path.join(BASE_DIR, "data", "raw", "2011", "validated-march")
+PROCESSED_DIR = os.path.join(BASE_DIR, "data", "processed")
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
 
-MONTHS = ["march", "april", "may", "june"]
-YEAR = "2011"
+MONTHS = ["march"]
 
 KEEP_TECHNOLOGIES = ["dsl", "cable"]
 
@@ -30,5 +30,4 @@ WEBSITES = [
     "wikipedia.org",
     "facebook.com",
     "google.com",
-    "netflix.com",
 ]

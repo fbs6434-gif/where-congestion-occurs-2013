@@ -5,7 +5,7 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-from config import DATA_DIR, MONTHS, OUTPUT_DIR
+from config import PROCESSED_DIR, MONTHS, OUTPUT_DIR
 
 sns.set_theme(style="whitegrid")
 COLORS = ["#4c72b0", "#55a868", "#c44e52", "#8172b2"]
@@ -24,10 +24,10 @@ def bar_chart(data, x_col, y_col, hue_col, title, ylabel, fname):
 
 def main():
     os.makedirs(os.path.join(OUTPUT_DIR, "figures"), exist_ok=True)
-    isp_agg = pd.read_parquet(os.path.join(DATA_DIR, "processed", "isp_agg.parquet"))
-    meta = pd.read_parquet(os.path.join(DATA_DIR, "processed", "meta_valid.parquet"))
-    rc = pd.read_parquet(os.path.join(DATA_DIR, "processed", "rc.parquet"))
-    tis = pd.read_parquet(os.path.join(DATA_DIR, "processed", "tis.parquet"))
+    isp_agg = pd.read_parquet(os.path.join(PROCESSED_DIR, "isp_agg.parquet"))
+    meta = pd.read_parquet(os.path.join(PROCESSED_DIR, "meta_valid.parquet"))
+    rc = pd.read_parquet(os.path.join(PROCESSED_DIR, "rc.parquet"))
+    tis = pd.read_parquet(os.path.join(PROCESSED_DIR, "tis.parquet"))
 
     merged = rc.merge(tis, on=["unit_id", "month"]).merge(
         meta[["unit_id", "isp", "technology"]], on="unit_id"
@@ -35,7 +35,8 @@ def main():
 
     for tech, label in [("cable", "Cable"), ("dsl", "DSL")]:
         sub = isp_agg[isp_agg["technology"] == label.lower()].copy()
-        sub["ISP"] = "ISP " + sub["isp"].astype(str)
+        sub = sub.copy()
+        sub["ISP"] = sub["isp"].astype(str)
         sub["Month"] = sub["month"].str.capitalize()
 
         bar_chart(sub, "ISP", "TIS%", "Month",
@@ -44,7 +45,7 @@ def main():
 
     for tech, label, num in [("cable", "Cable", 6), ("dsl", "DSL", 7)]:
         sub = isp_agg[isp_agg["technology"] == label.lower()].copy()
-        sub["ISP"] = "ISP " + sub["isp"].astype(int).astype(str)
+        sub["ISP"] = sub["isp"].astype(str)
         sub["Month"] = sub["month"].str.capitalize()
 
         bar_chart(sub, "ISP", "RC%", "Month",

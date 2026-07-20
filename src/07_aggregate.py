@@ -3,12 +3,12 @@ Cross-tabulate RC x TIS per ISP x technology x month.
 """
 import os
 import pandas as pd
-from config import DATA_DIR, MONTHS, OUTPUT_DIR
+from config import PROCESSED_DIR, MONTHS, OUTPUT_DIR
 
 def main():
-    rc = pd.read_parquet(os.path.join(DATA_DIR, "processed", "rc.parquet"))
-    tis = pd.read_parquet(os.path.join(DATA_DIR, "processed", "tis.parquet"))
-    meta = pd.read_parquet(os.path.join(DATA_DIR, "processed", "meta_valid.parquet"))
+    rc = pd.read_parquet(os.path.join(PROCESSED_DIR, "rc.parquet"))
+    tis = pd.read_parquet(os.path.join(PROCESSED_DIR, "tis.parquet"))
+    meta = pd.read_parquet(os.path.join(PROCESSED_DIR, "meta_valid.parquet"))
 
     merged = rc.merge(tis, on=["unit_id", "month"]).merge(
         meta[["unit_id", "isp", "technology"]], on="unit_id"
@@ -51,7 +51,7 @@ def main():
     isp_agg["RC%"] = (isp_agg["RC"] / isp_agg["N"] * 100).round(1)
     isp_agg["TIS%"] = (isp_agg["TIS"] / isp_agg["N"] * 100).round(1)
 
-    isp_agg.to_parquet(os.path.join(DATA_DIR, "processed", "isp_agg.parquet"))
+    isp_agg.to_parquet(os.path.join(PROCESSED_DIR, "isp_agg.parquet"))
     print("Saved isp_agg.parquet")
 
 if __name__ == "__main__":
