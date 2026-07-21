@@ -5,35 +5,50 @@ from scipy.stats import pearsonr
 from config import PROCESSED_DIR, WEBSITES, TIS_R_THRESH, TIS_COUNT_THRESH, OUTPUT_DIR
 
 def main():
-    aligned = pd.read_parquet(os.path.join(PROCESSED_DIR, "aligned.parquet"))
+    tcp = pd.read_parquet(os.path.join(PROCESSED_DIR, "tcp.parquet"))
+    web = pd.read_parquet(os.path.join(PROCESSED_DIR, "web.parquet"))
+    meta = pd.read_parquet(os.path.join(PROCESSED_DIR, "meta_valid.parquet"))
 
-    hourly = aligned.copy()
-    hourly["hour"] = hourly["dtime"].dt.floor("h")
-    hourly = hourly.groupby(["unit_id", "month", "url", "hour"]).agg(
-        tp=("throughput_mbps", "median"),
-        lt=("load_time_ms", "median"),
-    ).dropna().reset_index()
+    valid_ids = set(meta["unit_id"])
+    tcp = tcp[tcp["unit_id"].isin(valid_ids)]
+    web = web[web["unit_id"].isin(valid_ids)]
+
+    tcp["hour"] = tcp["dtime"].dt.floor("h")
+    web["hour"] = web["dtime"].dt.floor("h")
+
+    tp_hourly = tcp.groupby(["unit_id", "hour"], as_index=False)["throughput_mbps"].median()
+    lt_hourly = web.groupby(["unit_id", "url", "hour"], as_index=False)["load_time_ms"].median()
+
+    del tcp, web
+
+    hourly = tp_hourly.merge(lt_hourly, on=["unit_id", "hour"])
+    hourly = hourly.dropna()
+    hourly["month"] = "march"
+
+    print(f"Hourly observations: {len(hourly)}")
 
     tis_records = []
 
-    for (unit_id, month), grp in hourly.groupby(["unit_id", "month"]):
+    for unit_id, grp in hourly.groupby("unit_id"):
         high_count = 0
         for site in WEBSITES:
             site_data = grp[grp["url"] == site]
             if len(site_data) < 30:
                 continue
-            if site_data["tp"].nunique() < 2:
+            tp = site_data["throughput_mbps"].values
+            lt = site_data["load_time_ms"].values
+            if tp.nbytes == 0 or lt.nbytes == 0:
                 continue
-            if site_data["lt"].nunique() < 2:
+            if np.unique(tp).size < 2 or np.unique(lt).size < 2:
                 continue
-            r, _ = pearsonr(site_data["tp"], site_data["lt"])
+            r, _ = pearsonr(tp, lt)
             if r < -TIS_R_THRESH:
                 high_count += 1
 
         tis = high_count >= TIS_COUNT_THRESH
         tis_records.append({
             "unit_id": unit_id,
-            "month": month,
+            "month": "march",
             "tis": tis,
             "tis_high_corr_count": high_count,
         })
