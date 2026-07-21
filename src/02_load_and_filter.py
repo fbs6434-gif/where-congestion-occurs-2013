@@ -26,7 +26,9 @@ def load_meta():
     })
     meta["technology"] = meta["technology"].str.strip().str.lower()
     meta = meta[meta["technology"].isin(KEEP_TECHNOLOGIES)].copy()
-    print(f"Units after technology filter: {len(meta)}")
+    print(f"Units after technology filter (DSL/CABLE): {len(meta)}")
+    meta = meta[meta["speed_tier_down"].notna() & (meta["speed_tier_down"] > 0)]
+    print(f"Units after known ISP speed tier filter: {len(meta)}")
     return meta
 
 def load_tcp_chunked(valid_ids, chunksize=500_000):
