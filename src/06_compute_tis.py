@@ -42,7 +42,7 @@ def main():
             if np.unique(tp).size < 2 or np.unique(lt).size < 2:
                 continue
             r, _ = pearsonr(tp, lt)
-            if r < -TIS_R_THRESH:
+            if r > TIS_R_THRESH:
                 high_count += 1
 
         tis = high_count >= TIS_COUNT_THRESH
