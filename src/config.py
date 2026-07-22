@@ -30,4 +30,5 @@ WEBSITES = [
     "wikipedia.org",
     "facebook.com",
     "google.com",
+    "netflix.com",
 ]
