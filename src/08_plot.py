@@ -5,15 +5,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
-from matplotlib.patches import FancyBboxPatch
 from config import PROCESSED_DIR, OUTPUT_DIR
-
-sns_available = False
-try:
-    import seaborn as sns
-    sns_available = True
-except ImportError:
-    pass
 
 OUTPUT_DIR_FIGURES = os.path.join(OUTPUT_DIR, "figures")
 os.makedirs(OUTPUT_DIR_FIGURES, exist_ok=True)
@@ -40,10 +32,9 @@ TECH_COLORS = {"cable": "#E24A33", "dsl": "#348ABD"}
 TECH_MARKERS = {"cable": "s", "dsl": "o"}
 TECH_LABELS = {"cable": "Cable", "dsl": "DSL"}
 
-CABLE_COLORS = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728",
-                "#9467bd", "#8c564b", "#e377c2", "#7f7f7f"]
-DSL_COLORS = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728",
-              "#9467bd", "#8c564b"]
+ISP_NUMBERING = {}
+ISP_TECH = {}
+
 
 def load_data():
     meta = pd.read_parquet(os.path.join(PROCESSED_DIR, "meta_valid.parquet"))
@@ -53,6 +44,7 @@ def load_data():
         meta[["unit_id", "isp", "technology"]], on="unit_id"
     )
     return merged
+
 
 def compute_isp_summary(merged, tech):
     sub = merged[merged["technology"] == tech]
@@ -72,45 +64,88 @@ def compute_isp_summary(merged, tech):
     )
     return summary
 
-def plot_isp_bars(summary, tech, metric, title, ylabel, fname):
-    df = summary.sort_values("RC%" if metric == "RC%" else "TIS%", ascending=False).copy()
-    isps = df["isp"].tolist()
-    vals = df[metric].values
-    ns = df["N"].values
 
-    colors = CABLE_COLORS if tech == "cable" else DSL_COLORS
-    bar_colors = [colors[i % len(colors)] for i in range(len(isps))]
+def build_isp_numbering(merged):
+    isp_to_num = {
+        # Cable ISPs (paper numbers: 2, 3, 5, 6, 7, 9, 10, 12)
+        "Insight": 2,
+        "Cablevision": 3,   # paper: very high TIS + high RC
+        "Charter": 5,
+        "TimeWarner": 6,
+        "Cox": 7,           # paper: high RC, NOT high TIS
+        "Comcast": 9,
+        "Mediacom": 10,     # paper: very high TIS + high RC
+        "Brighthouse": 12,
+        # DSL ISPs (paper numbers: 1, 4, 8, 11, 13, 14)
+        "CenturyLink": 1,
+        "Frontier": 4,
+        "AT&T": 8,
+        "Qwest": 11,
+        "Verizon": 13,
+        "Windstream": 14,
+    }
+    tech_map = {
+        isp: merged[merged["isp"] == isp]["technology"].iloc[0]
+        for isp in isp_to_num
+    }
+    numbering = {isp: isp_to_num[isp] for isp in sorted(isp_to_num, key=lambda x: isp_to_num[x])}
+    print(f"  ISP numbering ({len(numbering)} cable/DSL ISPs): {numbering}")
+    for isp, num in numbering.items():
+        print(f"    ISP {num:2d} = {isp:20s} ({tech_map[isp]})")
+    return numbering, tech_map
 
-    fig, ax = plt.subplots(figsize=(7, 4.5))
-    bars = ax.bar(range(len(isps)), vals, color=bar_colors, edgecolor="black",
-                   linewidth=0.8, width=0.65, zorder=3)
 
-    max_val = max(vals) if len(vals) > 0 else 1
-    y_max = max(max_val * 1.4, 5)
-    ax.set_ylim(0, y_max)
-    ax.yaxis.set_major_locator(mticker.MaxNLocator(nbins=6))
+def plot_isp_dotplot(summary, tech, metric, title, ylabel, fname):
+    all_isps = sorted(ISP_NUMBERING.keys(), key=lambda x: ISP_NUMBERING[x])
+    isp_labels = [f"ISP {ISP_NUMBERING[name]}\n({name})" for name in all_isps]
+    tech_color = TECH_COLORS[tech]
+
+    summary_map = dict(zip(summary["isp"], summary[metric]))
+    n_map = dict(zip(summary["isp"], summary["N"]))
+
+    x_pos = np.arange(len(all_isps))
+    vals = np.array([summary_map.get(isp, np.nan) for isp in all_isps])
+    ns = np.array([n_map.get(isp, 0) for isp in all_isps])
+
+    max_val = np.nanmax(vals) if np.any(~np.isnan(vals)) else 1
+    y_max = max(max_val * 1.45, 5)
+
+    fig, ax = plt.subplots(figsize=(8, 3.5))
+
+    mask = ~np.isnan(vals)
+    ax.scatter(x_pos[mask], vals[mask], s=80, c=tech_color, edgecolors="black",
+               linewidths=0.6, zorder=5)
+
+    ax.axhline(y=0, color="black", linewidth=0.8, zorder=1)
+
+    ax.set_ylim(-max_val * 0.05, y_max)
+    ax.set_xlim(-0.6, len(all_isps) - 0.4)
+
+    ax.set_xticks(x_pos)
+    ax.set_xticklabels(isp_labels, fontsize=6, rotation=45, ha="right")
+    ax.yaxis.set_major_locator(mticker.MaxNLocator(nbins=5))
     ax.yaxis.set_major_formatter(mticker.FormatStrFormatter("%.1f"))
 
-    ax.set_xticks(range(len(isps)))
-    ax.set_xticklabels(isps, rotation=30, ha="right", fontsize=9)
-
-    for bar, v, n in zip(bars, vals, ns):
-        label_text = f"{v:.1f}%" if v >= 1 else f"{v:.1f}%"
-        ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + y_max * 0.02,
-                label_text, ha="center", va="bottom", fontsize=8, fontweight="bold")
-        ax.text(bar.get_x() + bar.get_width() / 2, -y_max * 0.06,
-                f"N={n}", ha="center", va="top", fontsize=7, color="gray")
+    for v, n, x, has_data in zip(vals, ns, x_pos, mask):
+        if has_data:
+            ax.text(x, v + y_max * 0.02, f"{v:.1f}%",
+                    ha="center", va="bottom", fontsize=8, fontweight="bold", color=tech_color)
+            ax.text(x, -y_max * 0.02, f"N={n}",
+                    ha="center", va="top", fontsize=7, color="gray")
 
     ax.set_ylabel(ylabel, fontsize=11)
-    ax.set_xlabel("")
-    ax.set_title(title, fontsize=12, fontweight="bold", pad=10)
+    ax.set_title(title, fontsize=10, fontweight="bold", pad=8)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
+    ax.spines["bottom"].set_visible(False)
+    ax.tick_params(bottom=False)
+    ax.grid(axis="y", alpha=0.25, zorder=0)
 
     plt.tight_layout()
     plt.savefig(os.path.join(OUTPUT_DIR_FIGURES, fname))
     plt.close()
     print(f"  Saved {fname}")
+
 
 def plot_scatter(merged):
     fig_data = []
@@ -134,8 +169,9 @@ def plot_scatter(merged):
                    alpha=0.85, zorder=5)
 
         for _, row in sub.iterrows():
+            label = f"ISP {ISP_NUMBERING.get(row['ISP'], '?')}"
             ax.annotate(
-                row["ISP"],
+                label,
                 (row["TIS%"], row["RC%"]),
                 xytext=(5, 5), textcoords="offset points",
                 fontsize=7, fontweight="bold",
@@ -167,6 +203,7 @@ def plot_scatter(merged):
     plt.close()
     print(f"  Saved fig5_scatter_log.png")
 
+
 def save_tables(merged):
     os.makedirs(os.path.join(OUTPUT_DIR, "tables"), exist_ok=True)
     for tech, label, fname in [("cable", "Cable", "table_I_cable.csv"),
@@ -193,6 +230,7 @@ def save_tables(merged):
         print(tbl.to_string(index=False))
         print()
 
+
 def print_isp_table(merged, tech, label):
     sub = merged[merged["technology"] == tech]
     rows = []
@@ -212,9 +250,13 @@ def print_isp_table(merged, tech, label):
     print(f"\nPer-ISP {label} results:")
     print(tbl.to_string(index=False))
 
+
 def main():
     print("Loading data...")
     merged = load_data()
+
+    global ISP_NUMBERING, ISP_TECH
+    ISP_NUMBERING, ISP_TECH = build_isp_numbering(merged)
 
     print("\nAggregate results:")
     save_tables(merged)
@@ -224,16 +266,16 @@ def main():
         summary = compute_isp_summary(merged, tech)
 
         print(f"\nPlotting Figure 3/4 — TIS prevalence for {label}...")
-        plot_isp_bars(
+        plot_isp_dotplot(
             summary, tech, "TIS%",
-            f"Tight Initial Segment (TIS) Prevalence — {label} ISPs",
+            f"TIS Prevalence — {label} ISPs",
             "TIS (%)", f"fig{3 if tech == 'cable' else 4}_TIS_{tech}.png"
         )
 
         print(f"Plotting Figure 6/7 — RC prevalence for {label}...")
-        plot_isp_bars(
+        plot_isp_dotplot(
             summary, tech, "RC%",
-            f"Recurrent Congestion (RC) Prevalence — {label} ISPs",
+            f"RC Prevalence — {label} ISPs",
             "RC (%)", f"fig{6 if tech == 'cable' else 7}_RC_{tech}.png"
         )
 
@@ -241,6 +283,7 @@ def main():
     plot_scatter(merged)
 
     print("\nDone — all figures saved to output/figures/")
+
 
 if __name__ == "__main__":
     main()

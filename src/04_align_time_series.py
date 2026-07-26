@@ -63,9 +63,9 @@ def main():
     aligned = pd.concat(pieces, ignore_index=True)
     print(f"Aligned pairs before completeness filter: {len(aligned)}")
 
-    pair_counts = aligned.groupby(["unit_id", "month", "url"]).size().reset_index(name="count")
-    valid_pairs = pair_counts[pair_counts["count"] >= MIN_MATCHED_PAIRS]
-    aligned = aligned.merge(valid_pairs[["unit_id", "month", "url"]], on=["unit_id", "month", "url"])
+    total_counts = aligned.groupby(["unit_id", "month"]).size().reset_index(name="total_count")
+    valid_units = total_counts[total_counts["total_count"] >= MIN_MATCHED_PAIRS]
+    aligned = aligned.merge(valid_units[["unit_id", "month"]], on=["unit_id", "month"])
 
     print(f"Aligned pairs after completeness filter: {len(aligned)}")
     print(f"Unique units: {aligned['unit_id'].nunique()}")

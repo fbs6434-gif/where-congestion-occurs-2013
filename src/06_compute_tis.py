@@ -13,8 +13,9 @@ def main():
     print(f"Aligned pairs: {len(aligned)}")
     print(f"Unique units: {aligned['unit_id'].nunique()}")
 
-    # Negative correlation: tight initial segment causes throughput DOWN,
-    # website load time UP -> r < -0.6
+    # Positive correlation: "website download speed" is inversely proportional
+    # to load_time. When shared bottleneck is congested, TCP throughput DOWN
+    # and 1/load_time (website download speed) also DOWN -> r > 0.6
     tis_records = []
     for uid, grp in aligned.groupby("unit_id"):
         high_count = 0
@@ -23,13 +24,13 @@ def main():
             if len(site_data) < 30:
                 continue
             tp = site_data["throughput_mbps"].values
-            lt = site_data["load_time_ms"].values
-            if len(tp) < 2 or len(lt) < 2:
+            inv_lt = 1.0 / site_data["load_time_ms"].values
+            if len(tp) < 2:
                 continue
-            if np.unique(tp).size < 2 or np.unique(lt).size < 2:
+            if np.unique(tp).size < 2 or np.unique(inv_lt).size < 2:
                 continue
-            r, _ = pearsonr(tp, lt)
-            if r < -TIS_R_THRESH:
+            r, _ = pearsonr(tp, inv_lt)
+            if r > TIS_R_THRESH:
                 high_count += 1
 
         tis = high_count >= TIS_COUNT_THRESH
