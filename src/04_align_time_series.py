@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from config import PROCESSED_DIR, ALIGNMENT_WINDOW_HOURS, MIN_MATCHED_PAIRS, OUTPUT_DIR
+from config import PROCESSED_DIR, ALIGNMENT_WINDOW_HOURS, MIN_MATCHED_PAIRS, MONTH, OUTPUT_DIR
 
 TMP_DIR = os.path.join(PROCESSED_DIR, "_align_tmp")
 BATCH_SIZE = 200
@@ -36,7 +36,7 @@ def main():
             on="dtime", direction="nearest", tolerance=window,
         ).dropna(subset=["throughput_mbps"])
         aligned["unit_id"] = uid
-        aligned["month"] = "march"
+        aligned["month"] = MONTH
         batch.append(aligned)
         if len(batch) >= BATCH_SIZE:
             pd.concat(batch, ignore_index=True).to_parquet(

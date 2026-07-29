@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 import numpy as np
-from config import PROCESSED_DIR, MONTHS, SPEED_TIER_VARIATION_THRESH, OUTPUT_DIR
+from config import PROCESSED_DIR, MONTHS, MONTH, SPEED_TIER_VARIATION_THRESH, OUTPUT_DIR
 
 def main():
     tcp = pd.read_parquet(os.path.join(PROCESSED_DIR, "tcp.parquet"))
@@ -11,7 +11,7 @@ def main():
 
     valid_units = []
 
-    for (unit_id, month), grp in tcp.groupby(["unit_id", "month"]):
+    for unit_id, grp in tcp.groupby("unit_id"):
         daily_max = grp.groupby("day")["throughput_mbps"].max()
         if len(daily_max) < 15:
             continue
@@ -22,7 +22,7 @@ def main():
         if variation > SPEED_TIER_VARIATION_THRESH:
             continue
         speed_tier = mean_dm
-        valid_units.append({"unit_id": unit_id, "month": month, "speed_tier": speed_tier})
+        valid_units.append({"unit_id": unit_id, "month": MONTH, "speed_tier": speed_tier})
 
     df = pd.DataFrame(valid_units)
     print(f"Units passing speed tier filter: {df['unit_id'].nunique()}")

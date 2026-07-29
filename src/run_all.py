@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-"""
-Orchestrator — run all steps sequentially.
-"""
 import subprocess
 import sys
 import os
@@ -17,18 +14,20 @@ SCRIPTS = [
 ]
 
 def main():
+    year = sys.argv[1] if len(sys.argv) > 1 else os.environ.get("YEAR", "2011")
+    env = {**os.environ, "YEAR": str(year)}
     base = os.path.dirname(os.path.abspath(__file__))
     for script in SCRIPTS:
         path = os.path.join(base, script)
         print(f"\n{'='*60}")
-        print(f"Running {script} ...")
+        print(f"[{year}] Running {script} ...")
         print(f"{'='*60}")
-        result = subprocess.run([sys.executable, path], capture_output=False)
+        result = subprocess.run([sys.executable, path], env=env, capture_output=False)
         if result.returncode != 0:
             print(f"ERROR: {script} failed with code {result.returncode}")
             sys.exit(result.returncode)
     print(f"\n{'='*60}")
-    print("All steps completed. Output in output/")
+    print(f"[{year}] All steps completed.")
     print(f"{'='*60}")
 
 if __name__ == "__main__":

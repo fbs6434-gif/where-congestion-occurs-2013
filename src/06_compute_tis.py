@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import numpy as np
 from scipy.stats import pearsonr
-from config import PROCESSED_DIR, WEBSITES, TIS_R_THRESH, TIS_COUNT_THRESH
+from config import PROCESSED_DIR, WEBSITES, TIS_R_THRESH, TIS_COUNT_THRESH, MONTH
 
 def main():
     aligned = pd.read_parquet(os.path.join(PROCESSED_DIR, "aligned.parquet"))
@@ -23,8 +23,11 @@ def main():
             site_data = grp[grp["url"] == site]
             if len(site_data) < 30:
                 continue
-            tp = site_data["throughput_mbps"].values
-            inv_lt = 1.0 / site_data["load_time_ms"].values
+            sd = site_data[site_data["load_time_ms"] > 0]
+            if len(sd) < 30:
+                continue
+            tp = sd["throughput_mbps"].values
+            inv_lt = 1.0 / sd["load_time_ms"].values
             if len(tp) < 2:
                 continue
             if np.unique(tp).size < 2 or np.unique(inv_lt).size < 2:
@@ -36,7 +39,7 @@ def main():
         tis = high_count >= TIS_COUNT_THRESH
         tis_records.append({
             "unit_id": uid,
-            "month": "march",
+            "month": MONTH,
             "tis": tis,
             "tis_high_corr_count": high_count,
         })
