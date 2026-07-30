@@ -6,11 +6,8 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 
-PROCESSED_DIRS = {
-    2011: "/home/jovyan/work/project/data/processed/2011",
-    2014: "/home/jovyan/work/project/data/processed/2014",
-    2019: "/home/jovyan/work/project/data/processed/2019",
-}
+ALL_YEARS = [2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023]
+PROCESSED_DIRS = {y: f"/home/jovyan/work/project/data/processed/{y}" for y in ALL_YEARS}
 OUTPUT_DIR = "/home/jovyan/work/project/output/compare"
 os.makedirs(os.path.join(OUTPUT_DIR, "figures"), exist_ok=True)
 os.makedirs(os.path.join(OUTPUT_DIR, "tables"), exist_ok=True)
@@ -117,7 +114,11 @@ def save_comparison_table(combined):
     ).reset_index()
     overall["RC%"] = (overall["RC"] / overall["N"] * 100).round(1)
     overall["TIS%"] = (overall["TIS"] / overall["N"] * 100).round(1)
-    overall["Month"] = "March"
+    month_map = {2011: "March", 2012: "April", 2013: "September", 2014: "March",
+                 2015: "September", 2016: "September", 2017: "September",
+                 2018: "September", 2019: "September", 2020: "September",
+                 2021: "September", 2022: "September", 2023: "September"}
+    overall["Month"] = overall["year"].map(month_map)
     overall = overall[["year", "Month", "N", "RC", "TIS", "RC%", "TIS%"]]
     overall.to_csv(os.path.join(OUTPUT_DIR, "tables", "comparison_overall.csv"), index=False)
     print("Saved comparison_overall.csv")
@@ -163,7 +164,7 @@ def main():
              marker="s", linewidth=2.5, markersize=10, label="TIS%")
     plt.xlabel("Year")
     plt.ylabel("Prevalence (%)")
-    plt.title("Overall Congestion Prevalence Over Time (March)", fontsize=12, fontweight="bold")
+    plt.title("Overall Congestion Prevalence Over Time", fontsize=12, fontweight="bold")
     plt.xticks(sorted(aggregated["year"]))
     plt.legend(frameon=True)
     plt.grid(True, alpha=0.3)

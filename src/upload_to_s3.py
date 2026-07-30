@@ -6,16 +6,10 @@ S3_ENDPOINT = "https://chi.tacc.chameleoncloud.org:7480"
 BUCKET = "mba-data"
 PREFIX = "where-congestion-occurs-2013"
 
-YEAR_DIRS = {
-    2011: "/home/jovyan/work/project/output/2011",
-    2014: "/home/jovyan/work/project/output/2014",
-    2019: "/home/jovyan/work/project/output/2019",
-}
-PROCESSED_DIRS = {
-    2011: "/home/jovyan/work/project/data/processed/2011",
-    2014: "/home/jovyan/work/project/data/processed/2014",
-    2019: "/home/jovyan/work/project/data/processed/2019",
-}
+ALL_YEARS = [2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023]
+
+YEAR_DIRS = {y: f"/home/jovyan/work/project/output/{y}" for y in ALL_YEARS}
+PROCESSED_DIRS = {y: f"/home/jovyan/work/project/data/processed/{y}" for y in ALL_YEARS}
 
 def upload_file(s3, local_path, s3_key):
     if not os.path.isfile(local_path):
