@@ -44,6 +44,18 @@ ISP_NAME_NORMALIZE = {
 def normalize_isp(name):
     return ISP_NAME_NORMALIZE.get(name, name)
 
+# AT&T's "uverse" (VDSL2) and "ipbb" (IP Broadband) are marketing labels for
+# copper/DSL-class access; treat them as dsl in trend figures. "fixed wireless"
+# (1 unit, 2022) is noise and dropped. Raw labels remain in per-year tables.
+TECH_MAP = {
+    "uverse": "dsl",
+    "ipbb": "dsl",
+    "fixed wireless": None,
+}
+
+def normalize_tech(name):
+    return TECH_MAP.get(name, name)
+
 def load_all():
     frames = []
     for year, d in PROCESSED_DIRS.items():
@@ -54,13 +66,14 @@ def load_all():
             frames.append(df)
     combined = pd.concat(frames, ignore_index=True)
     combined["isp_norm"] = combined["isp"].apply(normalize_isp)
+    combined["tech_norm"] = combined["technology"].apply(normalize_tech)
     return combined
 
 def plot_metric_by_tech(combined, metric, title, ylabel, fname):
-    techs = sorted(combined["technology"].unique())
+    techs = sorted(combined["tech_norm"].dropna().unique())
     fig, ax = plt.subplots(figsize=(8, 5))
     for i, tech in enumerate(techs):
-        sub = combined[combined["technology"] == tech]
+        sub = combined[combined["tech_norm"] == tech]
         agg = sub.groupby("year").agg(N=("N", "sum"), RC=("RC", "sum"), TIS=("TIS", "sum")).reset_index()
         agg["RC%"] = (agg["RC"] / agg["N"] * 100).round(1)
         agg["TIS%"] = (agg["TIS"] / agg["N"] * 100).round(1)
@@ -82,9 +95,9 @@ def plot_metric_by_tech(combined, metric, title, ylabel, fname):
     print(f"Saved {fname}")
 
 def plot_metric_per_tech(combined, metric, title, ylabel, fname_prefix):
-    techs = sorted(combined["technology"].unique())
+    techs = sorted(combined["tech_norm"].dropna().unique())
     for i, tech in enumerate(techs):
-        sub = combined[combined["technology"] == tech]
+        sub = combined[combined["tech_norm"] == tech]
         agg = sub.groupby("year").agg(N=("N", "sum"), RC=("RC", "sum"), TIS=("TIS", "sum")).reset_index()
         agg["RC%"] = (agg["RC"] / agg["N"] * 100).round(1)
         agg["TIS%"] = (agg["TIS"] / agg["N"] * 100).round(1)
@@ -158,11 +171,12 @@ def save_comparison_table(combined):
     print("Saved comparison_overall.csv")
     print(overall.to_string(index=False))
 
-    by_tech = combined.groupby(["year", "technology"]).agg(
+    by_tech = combined[combined["tech_norm"].notna()].groupby(["year", "tech_norm"]).agg(
         N=("N", "sum"), RC=("RC", "sum"), TIS=("TIS", "sum")
     ).reset_index()
     by_tech["RC%"] = (by_tech["RC"] / by_tech["N"] * 100).round(1)
     by_tech["TIS%"] = (by_tech["TIS"] / by_tech["N"] * 100).round(1)
+    by_tech = by_tech.rename(columns={"tech_norm": "technology"})
     by_tech = by_tech.sort_values(["year", "technology"])
     by_tech.to_csv(os.path.join(OUTPUT_DIR, "tables", "comparison_by_tech.csv"), index=False)
     print("Saved comparison_by_tech.csv")
