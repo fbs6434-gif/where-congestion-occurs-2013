@@ -100,9 +100,9 @@ def plot_metric_by_tech(combined, metric, title, ylabel, fname):
     print(f"Saved {fname}")
 
 def plot_metric_per_tech(combined, metric, title, ylabel, fname_prefix):
-    techs = sorted(combined["tech_norm"].dropna().unique())
+    techs = sorted(combined["technology"].dropna().unique())
     for i, tech in enumerate(techs):
-        sub = combined[combined["tech_norm"] == tech]
+        sub = combined[combined["technology"] == tech]
         agg = sub.groupby("year").agg(N=("N", "sum"), RC=("RC", "sum"), TIS=("TIS", "sum")).reset_index()
         agg["RC%"] = (agg["RC"] / agg["N"] * 100).round(1)
         agg["TIS%"] = (agg["TIS"] / agg["N"] * 100).round(1)
