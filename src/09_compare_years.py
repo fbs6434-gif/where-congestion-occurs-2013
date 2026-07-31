@@ -47,6 +47,9 @@ def normalize_isp(name):
 # AT&T's "uverse" (VDSL2) and "ipbb" (IP Broadband) are marketing labels for
 # copper/DSL-class access; treat them as dsl in trend figures. "fixed wireless"
 # (1 unit, 2022) is noise and dropped. Raw labels remain in per-year tables.
+# Set MERGE_TECH_LABELS=0 (or "0") to disable the merge and keep raw FCC labels.
+MERGE_TECH_LABELS = os.environ.get("MERGE_TECH_LABELS", "1") != "0"
+
 TECH_MAP = {
     "uverse": "dsl",
     "ipbb": "dsl",
@@ -54,7 +57,9 @@ TECH_MAP = {
 }
 
 def normalize_tech(name):
-    return TECH_MAP.get(name, name)
+    if MERGE_TECH_LABELS:
+        return TECH_MAP.get(name, name)
+    return name
 
 def load_all():
     frames = []
