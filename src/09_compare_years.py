@@ -1,4 +1,5 @@
 import os
+import itertools
 import pandas as pd
 import numpy as np
 import matplotlib
@@ -59,10 +60,13 @@ def plot_metric_by_tech(combined, metric, title, ylabel, fname):
     techs = sorted(combined["technology"].unique())
     fig, ax = plt.subplots(figsize=(8, 5))
     for i, tech in enumerate(techs):
-        sub = combined[combined["technology"] == tech].sort_values("year")
+        sub = combined[combined["technology"] == tech]
+        agg = sub.groupby("year").agg(N=("N", "sum"), RC=("RC", "sum"), TIS=("TIS", "sum")).reset_index()
+        agg["RC%"] = (agg["RC"] / agg["N"] * 100).round(1)
+        agg["TIS%"] = (agg["TIS"] / agg["N"] * 100).round(1)
         c = _tech_palette[i % len(_tech_palette)]
         m = _tech_markers_list[i % len(_tech_markers_list)]
-        ax.plot(sub["year"], sub[metric], color=c, marker=m, label=tech.capitalize(),
+        ax.plot(agg["year"], agg[metric], color=c, marker=m, label=tech.capitalize(),
                 linewidth=2, markersize=8, zorder=5)
     ax.set_xlabel("Year", fontsize=11)
     ax.set_ylabel(ylabel, fontsize=11)
@@ -77,22 +81,52 @@ def plot_metric_by_tech(combined, metric, title, ylabel, fname):
     plt.close()
     print(f"Saved {fname}")
 
-def plot_metric_by_isp(combined, metric, title, ylabel, fname):
+def plot_metric_per_tech(combined, metric, title, ylabel, fname_prefix):
+    techs = sorted(combined["technology"].unique())
+    for i, tech in enumerate(techs):
+        sub = combined[combined["technology"] == tech]
+        agg = sub.groupby("year").agg(N=("N", "sum"), RC=("RC", "sum"), TIS=("TIS", "sum")).reset_index()
+        agg["RC%"] = (agg["RC"] / agg["N"] * 100).round(1)
+        agg["TIS%"] = (agg["TIS"] / agg["N"] * 100).round(1)
+        c = _tech_palette[i % len(_tech_palette)]
+        fig, ax = plt.subplots(figsize=(7, 4))
+        ax.plot(agg["year"], agg[metric], color=c, marker="o",
+                linewidth=2.5, markersize=9, zorder=5)
+        ax.set_xlabel("Year", fontsize=11)
+        ax.set_ylabel(ylabel, fontsize=11)
+        ax.set_title(f"{title}: {tech.capitalize()}", fontsize=12, fontweight="bold")
+        ax.set_xticks(sorted(agg["year"]))
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+        ax.grid(True, alpha=0.3)
+        plt.tight_layout()
+        fname = f"{fname_prefix}_{tech.replace(' ', '_')}.png"
+        plt.savefig(os.path.join(OUTPUT_DIR, "figures", fname))
+        plt.close()
+        print(f"  Saved {fname}")
+
+ARTICLE_ISPS = ["AT&T", "Brighthouse", "Cablevision", "CenturyLink", "Charter",
+                "Comcast", "Cox", "Frontier", "Insight", "Mediacom", "Qwest",
+                "Time Warner Cable", "Verizon", "Windstream"]
+
+def plot_metric_by_isp(combined, metric, title, ylabel, fname, isp_filter=None):
     isp_agg = combined.groupby(["isp_norm", "year"]).agg(
         N=("N", "sum"), RC=("RC", "sum"), TIS=("TIS", "sum")
     ).reset_index()
     isp_agg["RC%"] = (isp_agg["RC"] / isp_agg["N"] * 100).round(1)
     isp_agg["TIS%"] = (isp_agg["TIS"] / isp_agg["N"] * 100).round(1)
+    if isp_filter is not None:
+        isp_agg = isp_agg[isp_agg["isp_norm"].isin(isp_filter)]
     isp_years = isp_agg.groupby("isp_norm")["year"].apply(set)
     common_isps = sorted([isp for isp in isp_years.index if len(isp_years[isp]) >= 2])
     if not common_isps:
         print("No ISPs with data in 2+ years for ISP-level plot")
         return
+    styles = list(itertools.product(_tech_palette, _tech_markers_list))
     fig, ax = plt.subplots(figsize=(9, 5.5))
     for i, isp in enumerate(common_isps):
         sub = isp_agg[isp_agg["isp_norm"] == isp].sort_values("year")
-        c = _tech_palette[i % len(_tech_palette)]
-        m = _tech_markers_list[i % len(_tech_markers_list)]
+        c, m = styles[i % len(styles)]
         ax.plot(sub["year"], sub[metric], color=c, marker=m, label=isp,
                 linewidth=2, markersize=8, zorder=5)
     ax.set_xlabel("Year", fontsize=11)
@@ -114,7 +148,7 @@ def save_comparison_table(combined):
     ).reset_index()
     overall["RC%"] = (overall["RC"] / overall["N"] * 100).round(1)
     overall["TIS%"] = (overall["TIS"] / overall["N"] * 100).round(1)
-    month_map = {2011: "March", 2012: "April", 2013: "September", 2014: "March",
+    month_map = {2011: "March", 2012: "April", 2013: "September", 2014: "September",
                  2015: "September", 2016: "September", 2017: "September",
                  2018: "September", 2019: "September", 2020: "September",
                  2021: "September", 2022: "September", 2023: "September"}
@@ -152,6 +186,16 @@ def main():
         "Tight Initial Segment (TIS) Prevalence by Technology",
         "TIS (%)", "compare_TIS_by_tech.png")
 
+    print("\nPlotting per-technology RC% trends...")
+    plot_metric_per_tech(combined, "RC%",
+        "Recurrent Congestion (RC) Prevalence",
+        "RC (%)", "compare_RC_tech")
+
+    print("Plotting per-technology TIS% trends...")
+    plot_metric_per_tech(combined, "TIS%",
+        "Tight Initial Segment (TIS) Prevalence",
+        "TIS (%)", "compare_TIS_tech")
+
     aggregated = combined.groupby("year").agg(
         N=("N", "sum"), RC=("RC", "sum"), TIS=("TIS", "sum")
     ).reset_index()
@@ -173,6 +217,41 @@ def main():
     plt.close()
     print("Saved compare_overall_trend.png")
 
+    print("\nPlotting overall RC-only and TIS-only trends...")
+    shared_ylim = (0, max(30, aggregated["RC%"].max() * 1.1))
+
+    fig, ax = plt.subplots(figsize=(7, 4))
+    ax.plot(aggregated["year"], aggregated["RC%"], color=_tech_palette[0],
+            marker="o", linewidth=2.5, markersize=10)
+    ax.set_xlabel("Year")
+    ax.set_ylabel("RC (%)")
+    ax.set_title("Recurrent Congestion Prevalence Over Time", fontsize=12, fontweight="bold")
+    ax.set_xticks(sorted(aggregated["year"]))
+    ax.set_ylim(shared_ylim)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.savefig(os.path.join(OUTPUT_DIR, "figures", "compare_RC_overall.png"))
+    plt.close()
+    print("Saved compare_RC_overall.png")
+
+    fig, ax = plt.subplots(figsize=(7, 4))
+    ax.plot(aggregated["year"], aggregated["TIS%"], color=_tech_palette[1],
+            marker="s", linewidth=2.5, markersize=10)
+    ax.set_xlabel("Year")
+    ax.set_ylabel("TIS (%)")
+    ax.set_title("Tight Initial Segment Prevalence Over Time", fontsize=12, fontweight="bold")
+    ax.set_xticks(sorted(aggregated["year"]))
+    ax.set_ylim(shared_ylim)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.savefig(os.path.join(OUTPUT_DIR, "figures", "compare_TIS_overall.png"))
+    plt.close()
+    print("Saved compare_TIS_overall.png")
+
     print("\nPlotting ISP-level comparisons...")
     plot_metric_by_isp(combined, "RC%",
         "RC Prevalence by ISP Over Time",
@@ -180,6 +259,14 @@ def main():
     plot_metric_by_isp(combined, "TIS%",
         "TIS Prevalence by ISP Over Time",
         "TIS (%)", "compare_TIS_by_isp.png")
+
+    print("\nPlotting ISP-level comparisons (article ISPs only)...")
+    plot_metric_by_isp(combined, "RC%",
+        "RC Prevalence by ISP Over Time (2011 Article ISPs)",
+        "RC (%)", "compare_RC_by_isp_article.png", isp_filter=ARTICLE_ISPS)
+    plot_metric_by_isp(combined, "TIS%",
+        "TIS Prevalence by ISP Over Time (2011 Article ISPs)",
+        "TIS (%)", "compare_TIS_by_isp_article.png", isp_filter=ARTICLE_ISPS)
 
     print("\nDone.")
 
