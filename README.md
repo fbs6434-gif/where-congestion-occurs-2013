@@ -77,3 +77,5 @@ Output goes to `output/tables/` and `output/figures/`.
 - **Multi-year (2011–2023):** `src/09_compare_years.py` aggregates `isp_agg.parquet` across
   all years into `output/compare/` (tables + trend figures).
 - **Reproduction fidelity and trend analysis:** see [`ANALYSIS.md`](ANALYSIS.md).
+- **13-year trends, plain-language:** see [`TRENDS.md`](TRENDS.md).
+- **TIS method validation:** `src/10_validate_tis.py` (2011 + 2019; outputs `output/validate/`); see [`ANALYSIS.md`](ANALYSIS.md) §3.

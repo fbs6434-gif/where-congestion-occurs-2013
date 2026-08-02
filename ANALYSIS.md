@@ -93,6 +93,20 @@ uniformly with the default completeness filter. Yearly sample sizes and prevalen
 5. **Fiber** (present from 2012) shows consistently low RC (≈0.4–6.5%). **Satellite** data
    (2013–2018) shows very high RC (up to 85% in 2017–2018) but with tiny samples.
 
+### What drives the trends
+
+- **Speed tiers.** Median estimated cable tier rose ~7× (16.8 → 119.7 Mbps, 2011→2019); DSL
+  only ~3.7× (3.0 → 11.2 Mbps). Cable RC fell *despite* a ~7× harder tier target, so the cable
+  improvement is real capacity/tier investment, not re-baselining downward.
+- **RC severity is unchanged.** Among congested units, the median share of measurements below
+  0.8× tier is ~0.27–0.34 in every year. Prevalence collapsed; the failure mode did not.
+- **Cable collapse is industry-wide, not one ISP.** Every major cable ISP improved
+  (Cablevision 74→≤7%, Cox 46→8%, Mediacom 22→3%, Comcast 15→~5%, Charter 14→~6%,
+  TimeWarner 16→~6%). 2011's cable headline was largely a two-ISP story (Cablevision + Cox).
+- **DSL bump is a specific-ISP wave.** Frontier (19%), AT&T (10%), Windstream (19%), Qwest (9%)
+  all spiked around 2015; Windstream had already been high (14–17%) in 2012–2013. The DSL fleet
+  churns (Verizon DSL exits by 2015, AT&T DSL by 2019).
+
 ### Caveats
 
 - **Uniform filter, documented alternative.** All 13 years use the default `rows`
@@ -106,3 +120,73 @@ uniformly with the default completeness filter. Yearly sample sizes and prevalen
 - **Evolving data program.** Website sets, M-Lab server placement, sampling schedules, and
   raw→validated processing all changed between years. Cross-year differences reflect a mix of
   network changes and measurement-program changes.
+
+## 3. TIS method validation (2011 + 2019)
+
+`src/10_validate_tis.py` checks whether the tight-initial-segment (TIS) detector measures real
+shared congestion rather than chance or the daily load cycle. It runs the full alignment +
+TIS pipeline on two contrasting years — 2011 (paper-era, method fires) and 2019 (post-break,
+method silent). Outputs in `output/validate/validate_{year}.json` and `sensitivity_{year}.csv`.
+
+### Design
+
+- **Permutation null.** For each (unit, site), shuffle the throughput↔load-time pairing within
+  the (unit, site) pair (200 permutations on a 400-unit subsample, capped per unit), re-running
+  the full site-level correlation + ≥5-of-10 detection on each permuted dataset. The null is
+  "chance correlation given identical marginal distributions."
+- **Hour-of-day control.** Re-run the same detection with partial correlations after removing
+  the shared hour-of-day pattern (load and throughput are both strongly diurnal).
+- **Sensitivity scan.** TIS% over r-thresholds 0.5/0.6/0.7 × count-thresholds 3–6 × minimum
+  series length 30/90/180.
+- **Peak vs. off-peak.** Mean site-correlation during weekday 19:00–23:00 vs. the rest of the
+  week. If peak congestion drove the correlations, peak r should exceed off-peak r.
+
+### Results (2011)
+
+| Diagnostic | Value |
+|---|---|
+| Observed TIS% | 1.83% (93 of 5,093 units), mean high-corr count 0.20 |
+| Free-shuffle null TIS% | 0.00% (mean count 0.00) — null never reaches observed |
+| Dataset p (null ≥ observed) | 0.0 |
+| Hour-of-day partial-correlation TIS% | 0.35% (18 units) |
+| Mean r peak vs. off-peak | 0.070 vs. 0.131 (fraction peak > off-peak: 0.35) |
+| Cross-ISP corr(RC%, TIS%) | 0.77 (all); −0.17 (excluding Cablevision outlier) |
+
+### Results (2019)
+
+| Diagnostic | Value |
+|---|---|
+| Observed TIS% | 0.00% (0 units), mean high-corr count 0.06 |
+| Free-shuffle null TIS% | 0.00% (mean count 0.001) |
+| Dataset p | 1.0 |
+
+### Interpretation
+
+1. **The method is not noise.** In 2011 the chance null never produces a TIS detection while
+   the real data produces 93. The correlations sit on real structure.
+2. **But ~80% of that structure is the diurnal cycle.** Controlling for hour-of-day drops TIS
+   from 1.83% to 0.35% (93 → 18 units). Most "tight initial segment" detections are units whose
+   benchmark sites slow in lockstep with daily load — a shared-time artifact, not shared
+   congestion.
+3. **The diurnal-robust signal is real, small, and DSL-concentrated.** The 18 surviving units
+   are 17 DSL + 1 cable; ~47% are also RC (vs. a 5.4% DSL baseline → ~9× enrichment). This is
+   the strongest evidence the paper's *qualitative* claim (DSL recurrent congestion is more
+   initial-segment than cable's) survives scrutiny — as a small, hour-adjusted DSL effect.
+4. **Peak hours do not explain the correlations** — mean r is *higher* off-peak. The expected
+   "peak-usage → shared bottleneck" signature is absent.
+5. **Sensitivity is continuous** (TIS% rises smoothly as thresholds loosen; max ~6% at
+   r>0.5/≥3/30), supporting the paper's graded-treatment claim, but the whole surface is low —
+   the detector is conservative regardless of thresholds.
+6. **ISP structure reproduces the paper's Fig 5.** One cable outlier (Cablevision: 74% RC /
+   26% TIS — the analog of the paper's "ISP 3/10") drives the positive cross-ISP RC–TIS
+   correlation; without it there is no correlation (r = −0.17). High-RC cable ISPs (Cox 46%,
+   Comcast 15%, TimeWarner 16%) have TIS ≈ 0 — their congestion lives beyond the initial
+   segment, exactly as the paper found.
+7. **By 2019 the method is blind.** Observed mean high-corr count (0.06) is ~60× the null
+   (0.001) — faint residual structure remains — but far below any threshold, so TIS = 0 with
+   p = 1.0. This is a measurement-program property (website-set change; see §2 finding 3), not
+   proof initial-segment congestion vanished.
+
+**Bottom line:** the TIS method measures real structure, but its headline rates are inflated
+~5× by the daily load cycle. Use it as a DSL-oriented, hour-adjusted secondary lens, only on
+2011–2016-era data, and do not read its post-2017 zeros as an absence of congestion.
