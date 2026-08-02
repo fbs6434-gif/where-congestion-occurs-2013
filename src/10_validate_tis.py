@@ -27,8 +27,7 @@ from config import PROCESSED_DIR, WEBSITES, TIS_R_THRESH, TIS_COUNT_THRESH, TIS_
 YEARS = [int(os.environ.get("YEAR", "2011"))]
 N_PERMS = 200
 PERM_UNIT_CAP = 400      # subsample of units for permutation nulls
-OUT_DIR = os.path.join(os.path.dirname(PROCESSED_DIR), os.pardir, "output", "validate")
-OUT_DIR = os.path.normpath(OUT_DIR)
+OUT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "output", "validate")
 os.makedirs(OUT_DIR, exist_ok=True)
 
 RNG = np.random.default_rng(42)
@@ -127,6 +126,9 @@ def analyze_year(year):
     obs_mean_sub = obs_sub.mean()
     obs_tis_sub = np.mean(obs_sub >= TIS_COUNT_THRESH)
 
+    np.save(os.path.join(OUT_DIR, f"null_free_high_{year}.npy"), free_high_all)
+    np.save(os.path.join(OUT_DIR, f"obs_sub_{year}.npy"), obs_sub)
+
     # dataset-level p-value: fraction of permutations whose null TIS rate
     # reaches the observed TIS rate
     null_tis_per_perm = (free_high_all >= TIS_COUNT_THRESH).mean(axis=0)
@@ -143,6 +145,10 @@ def analyze_year(year):
         part_high[uid] = cnt
     part_counts = np.array(list(part_high.values()))
     part_tis = np.mean(part_counts >= TIS_COUNT_THRESH)
+
+    unit_df = pd.DataFrame({"unit_id": list(obs_high.keys()), "obs_high": list(obs_high.values())})
+    unit_df["part_high"] = unit_df["unit_id"].map(part_high).fillna(0).astype(int)
+    unit_df.to_csv(os.path.join(OUT_DIR, f"unit_scores_{year}.csv"), index=False)
 
     # --- sensitivity scan (full data) ---
     print("\nSensitivity: TIS% as function of (r_thresh, count_thresh, min_series)")
@@ -174,6 +180,8 @@ def analyze_year(year):
                 ro, _ = pearsonr(tp[~pk], inv[~pk])
                 peak_rs.append(rp); off_rs.append(ro)
     del aligned_p
+    pd.DataFrame({"peak_r": peak_rs, "off_r": off_rs}).to_csv(
+        os.path.join(OUT_DIR, f"peak_offpeak_{year}.csv"), index=False)
 
     results = {
         "year": year, "units": len(units),
