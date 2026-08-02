@@ -1,0 +1,3 @@
+year,units,obs_tis_pct,obs_tis_units,null_free_tis_pct,empirical_p_free,partial_hour_tis_pct,partial_hour_tis_units,mean_r_peak,mean_r_offpeak,frac_peak_gt_off
+2011,5093,1.83,93,0.0,0.0,0.35,18,0.0695,0.1311,0.352
+2019,2771,0.0,0,0.0,1.0,0.0,0,0.0627,0.108,0.423
