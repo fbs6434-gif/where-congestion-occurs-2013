@@ -1,7 +1,8 @@
 import os
 import gc
 import pandas as pd
-from config import PROCESSED_DIR, ALIGNMENT_WINDOW_HOURS, MIN_MATCHED_RUNS, MONTH, OUTPUT_DIR
+from config import (PROCESSED_DIR, ALIGNMENT_WINDOW_HOURS, COMPLETENESS_MODE,
+                    MIN_MATCHED_RUNS, MIN_MATCHED_PAIRS, MONTH, OUTPUT_DIR)
 
 TMP_DIR = os.path.join(PROCESSED_DIR, "_align_tmp")
 CHUNKS_DIR = os.path.join(PROCESSED_DIR, "web_chunks")
@@ -93,19 +94,25 @@ def main():
 
     print("Computing completeness filter from batches...")
     # Compute valid unit/month combos without loading all data at once.
-    # Paper: a "matching pair" is one scheduled test run (benchmark matched with
-    # a website measurement); require >= MIN_MATCHED_RUNS distinct matched runs.
+    # "rows" (legacy): count aligned rows. "runs" (paper-faithful): count distinct
+    # matched benchmark runs (a scheduled run matched with a website measurement).
     count_pieces = []
     for f in sorted(os.listdir(TMP_DIR)):
         if not f.endswith(".parquet"):
             continue
-        batch = pd.read_parquet(os.path.join(TMP_DIR, f), columns=["unit_id", "month", "tcp_dtime"])
-        counts = batch.groupby(["unit_id", "month"])["tcp_dtime"].nunique().reset_index(name="total_count")
+        if COMPLETENESS_MODE == "runs":
+            batch = pd.read_parquet(os.path.join(TMP_DIR, f), columns=["unit_id", "month", "tcp_dtime"])
+            counts = batch.groupby(["unit_id", "month"])["tcp_dtime"].nunique().reset_index(name="total_count")
+            min_count = MIN_MATCHED_RUNS
+        else:
+            batch = pd.read_parquet(os.path.join(TMP_DIR, f), columns=["unit_id", "month"])
+            counts = batch.groupby(["unit_id", "month"]).size().reset_index(name="total_count")
+            min_count = MIN_MATCHED_PAIRS
         count_pieces.append(counts)
         del batch
     total_counts = pd.concat(count_pieces, ignore_index=True)
     total_counts = total_counts.groupby(["unit_id", "month"]).agg({"total_count": "sum"}).reset_index()
-    valid_units = total_counts[total_counts["total_count"] >= MIN_MATCHED_RUNS][["unit_id", "month"]]
+    valid_units = total_counts[total_counts["total_count"] >= min_count][["unit_id", "month"]]
     del total_counts, count_pieces
     gc.collect()
     print(f"Valid unit-month combos: {len(valid_units)}")

@@ -40,10 +40,12 @@ For each unit-month: RC = True if `P(throughput / speed_tier < 0.8) > 0.2`
 For each unit-month:
 - Compute 10 Pearson correlations (M-Lab throughput × each website load time)
 - TIS = True if ≥5 of 10 correlations exceed 0.6
-- Correlations are only computed for (unit, site) series with ≥180 paired measurements (`TIS_MIN_SERIES`)
+- Correlations are only computed for (unit, site) series with at least `TIS_MIN_SERIES` paired measurements
 
-> Filter detail: the completeness filter (`MIN_MATCHED_RUNS`) counts distinct matched
-> benchmark runs per unit-month (the paper's notion of a "matching pair"), not aligned rows.
+> Filter detail: the completeness filter counts aligned rows by default (`COMPLETENESS_MODE=rows`),
+> used uniformly across the 2011–2023 comparison. The paper-faithful variant
+> (`COMPLETENESS_MODE=runs`, `TIS_MIN_SERIES=180`) counts distinct matched benchmark runs;
+> see [`ANALYSIS.md`](ANALYSIS.md).
 
 ### Step 7 — Aggregate
 Cross-tabulate RC × TIS per ISP × technology × month.

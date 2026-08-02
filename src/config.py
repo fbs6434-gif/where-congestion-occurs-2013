@@ -262,9 +262,17 @@ RC_T = 0.2
 TIS_R_THRESH = 0.6
 TIS_COUNT_THRESH = 5
 
-MIN_MATCHED_RUNS = 180  # paper: >= half of ~360 scheduled runs per month
-MIN_MATCHED_PAIRS = 180  # legacy: counted aligned rows (~10x runs), kept for reference
-TIS_MIN_SERIES = 180  # paper: paired series length for a correlation to be useful
+# Matched-pair completeness filter mode.
+#   "rows" (default): count aligned rows (legacy). Used uniformly across the
+#       2011-2023 comparison so every year is consistent without re-downloading
+#       archived raw data for 2016-2018 and 2020-2023.
+#   "runs" (paper-faithful): count distinct matched benchmark runs, requiring
+#       MIN_MATCHED_RUNS. Needs raw/processed data that is only kept locally for
+#       2011-2015 and 2019; see ANALYSIS.md.
+COMPLETENESS_MODE = os.environ.get("COMPLETENESS_MODE", "rows")
+MIN_MATCHED_RUNS = 180   # paper: >= half of ~360 scheduled runs per month
+MIN_MATCHED_PAIRS = 180  # aligned-row threshold (legacy default)
+TIS_MIN_SERIES = 30      # per-site series minimum before a correlation counts (paper: 180)
 SPEED_TIER_VARIATION_THRESH = 0.5
 
 ALIGNMENT_WINDOW_HOURS = 1
