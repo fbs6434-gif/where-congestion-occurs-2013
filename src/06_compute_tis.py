@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import numpy as np
 from scipy.stats import pearsonr
-from config import PROCESSED_DIR, WEBSITES, TIS_R_THRESH, TIS_COUNT_THRESH, MONTH
+from config import PROCESSED_DIR, WEBSITES, TIS_R_THRESH, TIS_COUNT_THRESH, MONTH, TIS_MIN_SERIES
 
 def main():
     aligned = pd.read_parquet(os.path.join(PROCESSED_DIR, "aligned.parquet"))
@@ -21,10 +21,10 @@ def main():
         high_count = 0
         for site in WEBSITES:
             site_data = grp[grp["url"] == site]
-            if len(site_data) < 30:
+            if len(site_data) < TIS_MIN_SERIES:
                 continue
             sd = site_data[site_data["load_time_ms"] > 0]
-            if len(sd) < 30:
+            if len(sd) < TIS_MIN_SERIES:
                 continue
             tp = sd["throughput_mbps"].values
             inv_lt = 1.0 / sd["load_time_ms"].values

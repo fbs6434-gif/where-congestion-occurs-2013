@@ -40,6 +40,10 @@ For each unit-month: RC = True if `P(throughput / speed_tier < 0.8) > 0.2`
 For each unit-month:
 - Compute 10 Pearson correlations (M-Lab throughput × each website load time)
 - TIS = True if ≥5 of 10 correlations exceed 0.6
+- Correlations are only computed for (unit, site) series with ≥180 paired measurements (`TIS_MIN_SERIES`)
+
+> Filter detail: the completeness filter (`MIN_MATCHED_RUNS`) counts distinct matched
+> benchmark runs per unit-month (the paper's notion of a "matching pair"), not aligned rows.
 
 ### Step 7 — Aggregate
 Cross-tabulate RC × TIS per ISP × technology × month.
@@ -65,3 +69,9 @@ python src/run_all.py
 ```
 
 Output goes to `output/tables/` and `output/figures/`.
+
+## Extensions
+
+- **Multi-year (2011–2023):** `src/09_compare_years.py` aggregates `isp_agg.parquet` across
+  all years into `output/compare/` (tables + trend figures).
+- **Reproduction fidelity and trend analysis:** see [`ANALYSIS.md`](ANALYSIS.md).

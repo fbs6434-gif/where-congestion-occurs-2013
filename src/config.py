@@ -262,7 +262,9 @@ RC_T = 0.2
 TIS_R_THRESH = 0.6
 TIS_COUNT_THRESH = 5
 
-MIN_MATCHED_PAIRS = 180
+MIN_MATCHED_RUNS = 180  # paper: >= half of ~360 scheduled runs per month
+MIN_MATCHED_PAIRS = 180  # legacy: counted aligned rows (~10x runs), kept for reference
+TIS_MIN_SERIES = 180  # paper: paired series length for a correlation to be useful
 SPEED_TIER_VARIATION_THRESH = 0.5
 
 ALIGNMENT_WINDOW_HOURS = 1
