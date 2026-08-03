@@ -1,7 +1,7 @@
 # Analysis — Reproduction fidelity and multi-year trends
 
 This document summarizes two pieces of work on the reproduction of Genin & Splett (2013),
-*Where Congestion Occurs in the US Broadband Access Networks* ([arXiv:1307.3696](https://arxiv.org/abs/1307.3696)):
+*Where in the Internet is congestion?* ([arXiv:1307.3696](https://arxiv.org/abs/1307.3696)):
 
 1. Why the 2011 reproduction does not exactly match the paper's published numbers.
 2. What the extended 2011–2023 FCC Measuring Broadband America (SamKnows) analysis shows.
