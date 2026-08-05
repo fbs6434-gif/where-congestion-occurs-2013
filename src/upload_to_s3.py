@@ -53,6 +53,13 @@ def main():
             s3_key = f"{PREFIX}/data/processed/{year}/isp_agg.parquet"
             upload_file(s3, isp_agg, s3_key)
 
+    print("\n=== Uploading raw-vs-validated comparison ===")
+    compare_dir = "/home/jovyan/work/project/output/compare_raw_validated"
+    upload_dir(s3, os.path.join(compare_dir, "figures"),
+               f"{PREFIX}/output/compare_raw_validated/figures")
+    upload_dir(s3, os.path.join(compare_dir, "tables"),
+               f"{PREFIX}/output/compare_raw_validated/tables")
+
     print("\nDone uploading.")
 
 if __name__ == "__main__":

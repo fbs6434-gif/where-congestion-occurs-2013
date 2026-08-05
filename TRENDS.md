@@ -4,13 +4,18 @@ Digestible version of the extended analysis. Method: the RC (recurrent congestio
 (tight initial segment) definitions from Genin & Splett (2013) applied to one month per year of
 FCC Measuring Broadband America (SamKnows) data, uniformly with the `rows` completeness filter.
 Full numbers in `ANALYSIS.md` §2 and `output/compare/tables/comparison_by_tech.csv`; figures in
-`output/compare/figures/` (`compare_overall_trend.png`, `compare_RC_by_tech.png`, ...).
+`output/compare/figures/` (`compare_overall_trend.png`, `compare_RC_by_tech.png`, ...). The
+same pipeline was also re-run on the **raw bulk** tarballs (2011–2022) — a larger fleet than
+the validated subset — with a raw-vs-validated comparison in `output/compare_raw_validated/`;
+see `ANALYSIS.md` §4.
 
 ## TL;DR
 
 - **Cable congestion collapsed, and the improvement is real.** Cable RC fell from **21% (2011)
   to ~2–7%** while advertised tiers rose ~7× (median ~17 → ~120 Mbps). Getting a 7× faster tier
-  *and* cutting congestion means the gains are genuine, not a re-baselining artifact.
+  *and* cutting congestion means the gains are genuine, not a re-baselining artifact. Re-running
+  on the full **raw** fleet raises later-year RC% (the validated subset under-states it, e.g.
+  2016: 11.1% vs 5.9%) but does not change the collapse — see `ANALYSIS.md` §4.
 - **DSL is the persistent problem child.** DSL RC hovered ~3–8% and actually **bumped to
   10–12% in 2015–2018** (Frontier, AT&T, Windstream, Qwest all spiked). Copper economics: you
   cannot cheaply upgrade last-mile copper, so it never got fixed the way cable was.

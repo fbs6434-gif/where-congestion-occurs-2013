@@ -76,6 +76,10 @@ Output goes to `output/tables/` and `output/figures/`.
 
 - **Multi-year (2011–2023):** `src/09_compare_years.py` aggregates `isp_agg.parquet` across
   all years into `output/compare/` (tables + trend figures).
+- **Raw-unit extension (2011–2022):** `src/01b_load_raw.py` + `src/02_raw_meta.py` re-run the
+  pipeline on the full **raw bulk** tarballs (not just the validated fleet), and
+  `src/13_compare_raw_validated.py` produces the raw-vs-validated comparison in
+  `output/compare_raw_validated/`; see `ANALYSIS.md` §4.
 - **Reproduction fidelity and trend analysis:** see [`ANALYSIS.md`](ANALYSIS.md).
 - **13-year trends, plain-language:** see [`TRENDS.md`](TRENDS.md).
 - **TIS method validation:** `src/10_validate_tis.py` (2011 + 2019; outputs `output/validate/`); see [`ANALYSIS.md`](ANALYSIS.md) §3.
