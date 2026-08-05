@@ -97,8 +97,7 @@ def main():
     arrow(ax, xs1 + 0.004, ym, xl0 - 0.004, ym, color=GREEN)
     arrow(ax, xl1 + 0.004, ym, xh0 - 0.004, ym, color=GREEN)
 
-    # congestion: clean star in the IXP-ISP gap, red border on copper
-    star(ax, (xi1 + xs0) / 2, ym + 0.055, 0.014, 0.007)
+    # congestion cued only by the red copper border
 
     plt.savefig(FIG)
     print("saved", FIG)
