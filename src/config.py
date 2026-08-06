@@ -240,9 +240,21 @@ YC = YEARS_CONFIG[YEAR]
 MONTH = YC["month"].lower()
 MONTH_NUM = YC["month_num"]
 
+# Multi-month reproduction of the 2011 paper (Mar-Jun): select month with MONTH env var.
+_MONTH = os.environ.get("MONTH", "").strip().lower()
+if YEAR == 2011 and _MONTH in ("march", "april", "may", "june"):
+    MONTH = _MONTH
+    MONTH_NUM = {
+        "march": "03", "april": "04", "may": "05", "june": "06",
+    }[_MONTH]
+
 RAW_DIR = os.path.join(BASE_DIR, "data", "raw", str(YEAR), YC["month_dir"])
 PROCESSED_DIR = os.path.join(BASE_DIR, "data", "processed", str(YEAR))
 OUTPUT_DIR = os.path.join(BASE_DIR, "output", str(YEAR))
+
+if YEAR == 2011 and _MONTH in ("march", "april", "may", "june"):
+    PROCESSED_DIR = os.path.join(BASE_DIR, "data", "processed", f"2011_{_MONTH}")
+    OUTPUT_DIR = os.path.join(BASE_DIR, "output", f"2011_{_MONTH}")
 
 TCP_CSV = YC["tcp_csv"]
 WEB_CSV = YC["web_csv"]
@@ -270,9 +282,9 @@ TIS_COUNT_THRESH = 5
 #       MIN_MATCHED_RUNS. Needs raw/processed data that is only kept locally for
 #       2011-2015 and 2019; see ANALYSIS.md.
 COMPLETENESS_MODE = os.environ.get("COMPLETENESS_MODE", "rows")
-MIN_MATCHED_RUNS = 180   # paper: >= half of ~360 scheduled runs per month
-MIN_MATCHED_PAIRS = 180  # aligned-row threshold (legacy default)
-TIS_MIN_SERIES = 30      # per-site series minimum before a correlation counts (paper: 180)
+MIN_MATCHED_RUNS = int(os.environ.get("MIN_MATCHED_RUNS", "180"))   # paper: >= half of ~360 scheduled runs per month
+MIN_MATCHED_PAIRS = int(os.environ.get("MIN_MATCHED_PAIRS", "180"))  # aligned-row threshold (legacy default)
+TIS_MIN_SERIES = int(os.environ.get("TIS_MIN_SERIES", "30"))  # per-site series minimum before a correlation counts (paper: 180)
 SPEED_TIER_VARIATION_THRESH = 0.5
 
 ALIGNMENT_WINDOW_HOURS = 1

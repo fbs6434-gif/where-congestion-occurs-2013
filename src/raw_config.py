@@ -116,7 +116,27 @@ RAW_TAR_NAME = RAWS[YEAR]["tbl_name"]
 RAW_TCP_CSV = RAWS[YEAR]["tcp_csv"]
 RAW_WEB_CSV = RAWS[YEAR]["web_csv"]
 
-RAW_DIR = os.path.join(BASE_DIR, "data", "raw", str(YEAR), "raw")
-PROCESSED_DIR = os.path.join(BASE_DIR, "data", "processed", str(YEAR))
+# Multi-month reproduction (paper used Mar-Jun 2011): select a month with MONTH=april|may|june
+# (MONTH=march is the default single-tarball path above).
+_MONTH = os.environ.get("MONTH", "").strip().lower()
+MONTHS_2011 = {
+    "march": ("raw-bulk-data-mar-2011.tar.gz",
+              "https://data.fcc.gov/download/measuring-broadband-america/raw-bulk-data-mar-2011.tar.gz"),
+    "april": ("raw-bulk-data-apr-2011.tar.gz",
+              "https://data.fcc.gov/download/measuring-broadband-america/raw-bulk-data-apr-2011.tar.gz"),
+    "may": ("raw-bulk-data-may-2011.tar.gz",
+            "https://data.fcc.gov/download/measuring-broadband-america/raw-bulk-data-may-2011.tar.gz"),
+    "june": ("raw-bulk-data-jun-2011.tar.gz",
+             "https://data.fcc.gov/download/measuring-broadband-america/raw-bulk-data-jun-2011.tar.gz"),
+}
+
+if YEAR == 2011 and _MONTH in MONTHS_2011:
+    RAW_TAR_NAME, RAW_URL = MONTHS_2011[_MONTH]
+    RAW_DIR = os.path.join(BASE_DIR, "data", "raw", "2011", _MONTH, "raw")
+    PROCESSED_DIR = os.path.join(BASE_DIR, "data", "processed", f"2011_{_MONTH}")
+else:
+    RAW_DIR = os.path.join(BASE_DIR, "data", "raw", str(YEAR), "raw")
+    PROCESSED_DIR = os.path.join(BASE_DIR, "data", "processed", str(YEAR))
+
 RAW_BK_DIR = os.path.join(BASE_DIR, "data", "raw_bk", str(YEAR))
 TAR_PATH = os.path.join(RAW_BK_DIR, RAW_TAR_NAME)
