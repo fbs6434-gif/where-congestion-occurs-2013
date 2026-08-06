@@ -18,6 +18,7 @@ LIGHT = "#F2F2F2"
 DGREY = "#555555"
 
 registry = []
+pending_leaders = []
 
 
 def box(ax, x, y, w, h, text, fc="#FFFFFF", ec="#333333", fs=10, lw=1.4):
@@ -46,13 +47,14 @@ def arrow(ax, x1, y1, x2, y2, color="#333333", lw=2.0, style="-|>", ls="-"):
 
 
 def annotate(ax, x, y, text, target=None, fs=10, color="#333", **kw):
-    """Text placed at (x, y); if target given, draws a leader line to target."""
+    """Text placed at (x, y); leader line is drawn later from the top edge of
+    the text to target so it never crosses the label."""
     kw.setdefault("ha", "center")
     kw.setdefault("va", "center")
     t = ax.text(x, y, text, fontsize=fs, color=color, **kw)
     registry.append((ax, None, t, None))
     if target is not None:
-        arrow(ax, x, y - 0.03, target[0], target[1], color=color, lw=1.0, style="-")
+        pending_leaders.append((ax, t, target, color))
     return t
 
 
@@ -111,6 +113,19 @@ def main():
              ha="center", va="bottom", color=GREY, style="italic", fs=9)
 
     fig.suptitle("Two models of the Internet: where the latency lives", fontsize=14, fontweight="bold", y=1.02)
+
+    # ======================= draw leader lines ========================
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+
+    for (ax_, t, target, color) in pending_leaders:
+        bb = t.get_window_extent(renderer)
+        inv = ax_.transData.inverted()
+        x0, y0 = inv.transform((bb.x0, bb.y0))
+        x1, y1 = inv.transform((bb.x1, bb.y1))
+        # start at top-center of the text, nudge up a touch to clear the glyphs
+        sx, sy = (x0 + x1) / 2, y1 + 0.012
+        arrow(ax_, sx, sy, target[0], target[1], color=color, lw=1.2, style="-")
 
     # ============================ overlap check ============================
     fig.canvas.draw()
