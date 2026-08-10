@@ -19,7 +19,7 @@ data = {
 
 sources = ["Paper", "Raw", "Validated"]
 techs = ["Overall", "Cable", "DSL"]
-bar_colors = ["#4C72B0", "#DD8452", "#55A868"]
+bar_colors = ["#009b8a", "#702b9d", "#ab82c5"]
 
 plt.rcParams.update({
     "font.family": "sans-serif",
@@ -34,7 +34,7 @@ plt.rcParams.update({
 })
 
 for metric_key, title in [("RC_pct", "Recurrent Congestion"), ("TIS_pct", "Congestion in Network Periphery")]:
-    fig, axes = plt.subplots(1, 3, figsize=(13, 4.5), sharey=False)
+    fig, axes = plt.subplots(1, 3, figsize=(13, 4.5), sharey=True)
 
     for ax, tech in zip(axes, techs):
         vals = [data[metric_key][s][tech] for s in sources]
@@ -45,8 +45,10 @@ for metric_key, title in [("RC_pct", "Recurrent Congestion"), ("TIS_pct", "Conge
                     f"{v:.1f}%", ha="center", va="bottom", fontsize=10, fontweight="bold")
 
         ax.set_title(tech, fontweight="bold")
-        ax.set_ylabel("Prevalence (%)" if tech == "Overall" else "")
-        ax.set_ylim(0, max(vals) * 1.35)
+        if tech == "Overall":
+            ax.set_ylabel("Prevalence (%)")
+        ymax = 35 if metric_key == "RC_pct" else 15
+        ax.set_ylim(0, ymax)
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
         ax.grid(axis="y", alpha=0.3)
