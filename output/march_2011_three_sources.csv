@@ -1,0 +1,10 @@
+Source,Technology,Total,RC,TIS,RCnTIS,RCnTIS_TIS_pct,RCnTIS_RC_pct,RC_pct,TIS_pct
+Paper,Cable,2878,696,60,56,93.3,8.0,24.2,2.1
+Paper,DSL,2009,143,68,52,76.5,36.4,7.1,3.4
+Paper,Overall,4887,839,128,108,84.4,12.9,17.2,2.6
+Raw,Cable,2969,716,58,55,94.8,7.7,24.1,2.0
+Raw,DSL,2105,148,70,53,75.7,35.8,7.0,3.3
+Raw,Overall,5074,864,128,108,84.4,12.5,17.0,2.5
+Validated,Cable,2878,696,60,56,93.3,8.0,24.2,2.1
+Validated,DSL,2009,143,68,52,76.5,36.4,7.1,3.4
+Validated,Overall,4887,839,128,108,84.4,12.9,17.2,2.6
