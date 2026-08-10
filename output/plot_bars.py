@@ -1,25 +1,24 @@
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import numpy as np
 
-# Data from the CSV
 data = {
     "RC_pct": {
-        "Paper":     {"Overall": 21.3, "Cable": 26.7, "DSL": 11.5},
-        "Raw":       {"Overall": 17.0, "Cable": 24.1, "DSL": 7.0},
-        "Validated": {"Overall": 17.2, "Cable": 24.2, "DSL": 7.1},
+        "Original":       {"Overall": 21.3, "Cable": 26.7, "DSL": 11.5},
+        "Our replication": {"Overall": 17.2, "Cable": 24.2, "DSL": 7.1},
     },
     "TIS_pct": {
-        "Paper":     {"Overall": 4.5, "Cable": 3.5, "DSL": 6.4},
-        "Raw":       {"Overall": 2.5, "Cable": 2.0, "DSL": 3.3},
-        "Validated": {"Overall": 2.6, "Cable": 2.1, "DSL": 3.4},
+        "Original":       {"Overall": 4.5, "Cable": 3.5, "DSL": 6.4},
+        "Our replication": {"Overall": 2.6, "Cable": 2.1, "DSL": 3.4},
     },
 }
 
-sources = ["Paper", "Raw", "Validated"]
+sources = ["Original", "Our replication"]
 techs = ["Overall", "Cable", "DSL"]
-bar_colors = ["#009b8a", "#702b9d", "#ab82c5"]
+color_maps = {
+    "RC_pct": ["#009b8a", "#6dc5b8"],
+    "TIS_pct": ["#59B2D1", "#a8d8ea"],
+}
 
 plt.rcParams.update({
     "font.family": "sans-serif",
@@ -34,11 +33,12 @@ plt.rcParams.update({
 })
 
 for metric_key, title in [("RC_pct", "Recurrent Congestion"), ("TIS_pct", "Congestion in Network Periphery")]:
-    fig, axes = plt.subplots(1, 3, figsize=(13, 4.5), sharey=True)
+    fig, axes = plt.subplots(1, 3, figsize=(8, 3), sharey=True)
+    bar_colors = color_maps[metric_key]
 
     for ax, tech in zip(axes, techs):
         vals = [data[metric_key][s][tech] for s in sources]
-        bars = ax.bar(sources, vals, color=bar_colors, edgecolor="black", linewidth=0.7, width=0.6)
+        bars = ax.bar(sources, vals, color=bar_colors, edgecolor="black", linewidth=0.7, width=0.55)
 
         for bar, v in zip(bars, vals):
             ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.3,
