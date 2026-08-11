@@ -259,6 +259,11 @@ if YEAR == 2011 and _MONTH in ("march", "april", "may", "june"):
 TCP_CSV = YC["tcp_csv"]
 WEB_CSV = YC["web_csv"]
 META_SOURCE = YC["meta_source"]
+# Override the unit-profile source with a local file relative to RAW_DIR
+# (used by src/23_process_validated_s3.py, which stages profiles from S3).
+_META_SOURCE_OVERRIDE = os.environ.get("META_SOURCE_OVERRIDE", "").strip()
+if _META_SOURCE_OVERRIDE:
+    META_SOURCE = _META_SOURCE_OVERRIDE
 META_ENGINE = YC["meta_engine"]
 META_COLS = YC["meta_cols"]
 HAS_HEADER = YC["has_header"]

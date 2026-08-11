@@ -29,6 +29,27 @@ plt.rcParams.update({
 MONTH_COLORS = {"March": "#0050EF", "April": "#00CFFF", "May": "#EFEF00", "June": "#00B050"}
 MONTH_MARKERS = {"March": "D", "April": "o", "May": "^", "June": "s"}
 
+# Inferred mapping from real ISP names to the paper's anonymous ISP numbers (1-14).
+# The paper never names ISPs; numbers were inferred by matching per-ISP RC/TIS
+# prevalence to the paper's figures, anchored on the paper's text
+# ("ISPs 3 and 10 have high cable TIS", "ISP7 high cable RC but low TIS").
+ISP_NUMBERS = {
+    "cable": {
+        "cablevision": 3, "cox": 7, "mediacom": 10, "comcast": 5,
+        "timewarner": 6, "charter": 9, "brighthouse": 2, "insight": 12,
+    },
+    "dsl": {
+        "verizon": 13, "qwest": 11, "windstream": 1,
+        "centurylink": 4, "frontier": 8, "at&t": 14,
+    },
+}
+
+# Full 1-14 mapping combining cable and DSL ISPs, used to label every x-axis position.
+ISP_ALL = {}
+for _tech, m in ISP_NUMBERS.items():
+    for isp, n in m.items():
+        ISP_ALL[n] = isp
+
 def load_all():
     frames = []
     for month_label, month_key in MONTHS.items():
@@ -72,17 +93,21 @@ def isp_summary(df, tech, month_label=None):
     ).reset_index()
 
 def plot_prevalence(df, tech, metric, fname, ylabel):
+    isp_num = ISP_NUMBERS[tech]
     isps = sorted(df[df["technology"] == tech]["isp"].unique())
-    fig, ax = plt.subplots(figsize=(9, 4.5))
+    pos = {isp: isp_num[isp] - 1 for isp in isps}
+    tick_labels = [f"{n}\n{ISP_ALL.get(n, '')}" for n in range(1, 15)]
+    fig, ax = plt.subplots(figsize=(10, 4.8))
     for month_label in MONTHS:
         summary = isp_summary(df, tech, month_label)
         m = dict(zip(summary["isp"], summary[metric] / summary["N"] * 100))
+        xs = [pos[isp] for isp in isps]
         vals = [m.get(isp, np.nan) for isp in isps]
-        ax.plot(range(len(isps)), vals, marker=MONTH_MARKERS[month_label],
+        ax.plot(xs, vals, marker=MONTH_MARKERS[month_label],
                 color=MONTH_COLORS[month_label], linestyle="none", ms=7,
                 label=month_label, zorder=5)
-    ax.set_xticks(range(len(isps)))
-    ax.set_xticklabels(isps, rotation=45, ha="right", fontsize=9)
+    ax.set_xticks(range(14))
+    ax.set_xticklabels(tick_labels, rotation=45, ha="right", fontsize=8)
     ax.set_ylabel(ylabel)
     ax.set_xlabel("ISP")
     all_vals = []
@@ -104,16 +129,19 @@ def plot_prevalence(df, tech, metric, fname, ylabel):
 def plot_scatter_april(df):
     fig, ax = plt.subplots(figsize=(6.5, 5.5))
     for tech, color in [("dsl", "#0050EF"), ("cable", "#EF0000")]:
+        isp_num = ISP_NUMBERS[tech]
         summary = isp_summary(df, tech, "April")
+        # The paper's Fig. 5 caption: "plot omits outlier ISP 3"
+        summary = summary[summary["isp"].map(isp_num.get) != 3]
         rc = summary["RC"] / summary["N"] * 100
         tis = summary["TIS"] / summary["N"] * 100
         ax.scatter(tis, rc, c=color, s=90, edgecolors="black", linewidths=0.5, zorder=5)
         for _, row in summary.iterrows():
-            ax.annotate(row["isp"], (row["TIS"]/row["N"]*100, row["RC"]/row["N"]*100),
-                        xytext=(5, 5), textcoords="offset points", fontsize=8, color=color)
+            num = isp_num.get(row["isp"], "?")
+            ax.annotate(num, (row["TIS"]/row["N"]*100, row["RC"]/row["N"]*100),
+                        xytext=(5, 5), textcoords="offset points", fontsize=9, color=color)
     ax.set_xlabel("TIS prevalence (%)")
     ax.set_ylabel("RC prevalence (%)")
-    ax.set_title(f"{YEAR} April — TIS vs RC prevalence by ISP")
     ax.grid(alpha=0.3)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
