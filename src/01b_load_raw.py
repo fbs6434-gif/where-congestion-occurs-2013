@@ -105,7 +105,7 @@ def read_csv_to_parquet(csv_path, comment, header_line, kind):
                              comment=comment if comment else None,
                              chunksize=500_000, engine="c",
                              low_memory=False,
-                             dtype={"unit_id": "int64"})
+                             on_bad_lines="skip")
     else:
         if comment:
             # '#'-prefixed header: let pandas skip it as a comment, then the
@@ -122,7 +122,7 @@ def read_csv_to_parquet(csv_path, comment, header_line, kind):
             reader = pd.read_csv(csv_path, names=names, usecols=usecols, header=None,
                                  comment="#", chunksize=500_000, engine="c",
                                  low_memory=False,
-                                 dtype={"unit_id": "int64"})
+                                 on_bad_lines="skip")
         else:
             # Has header; use names directly.
             if kind == "tcp":
@@ -132,26 +132,32 @@ def read_csv_to_parquet(csv_path, comment, header_line, kind):
             reader = pd.read_csv(csv_path, usecols=usecols,
                                  chunksize=500_000, engine="c",
                                  low_memory=False,
-                                 dtype={"unit_id": "int64"})
+                                 on_bad_lines="skip")
 
     pieces = []
     for i, chunk in enumerate(reader):
+        # Some raw months (2021-03) embed a stray duplicate header row mid-file
+        # that pandas reads as data; coerce numeric columns so those rows drop.
         chunk["dtime"] = pd.to_datetime(chunk["dtime"], errors="coerce")
-        chunk = chunk[chunk["dtime"].notna()]
+        chunk["unit_id"] = pd.to_numeric(chunk["unit_id"], errors="coerce")
+        chunk = chunk[chunk["dtime"].notna() & chunk["unit_id"].notna()]
         if kind == "tcp":
             # Raw bulk carries ~6 concurrent sequences per timestamp and failed
             # tests (bytes_sec=0). Drop failures and median-aggregate per
             # (unit, dtime), matching the validated pipeline's step 02. Without
             # this the daily-max speed-tier is inflated by PowerBoost bursts and
             # RC% is ~4x too high (see ANALYSIS.md).
+            chunk["bytes_sec"] = pd.to_numeric(chunk["bytes_sec"], errors="coerce")
+            chunk["successes"] = pd.to_numeric(chunk["successes"], errors="coerce")
             chunk = chunk[chunk["successes"] > 0]
             chunk["throughput_mbps"] = chunk["bytes_sec"] / BYTES_PER_MEGABIT
             piece = (chunk.groupby(["unit_id", "dtime"], as_index=False)["throughput_mbps"].median())
         else:
             if "successes" in chunk.columns:
+                chunk["successes"] = pd.to_numeric(chunk["successes"], errors="coerce")
                 chunk = chunk[chunk["successes"] > 0]
             chunk["url"] = chunk["target"].apply(extract_domain).astype("category")
-            chunk["load_time_ms"] = chunk["fetch_time"] / MICROSECONDS_PER_MILLISECOND
+            chunk["load_time_ms"] = pd.to_numeric(chunk["fetch_time"], errors="coerce") / MICROSECONDS_PER_MILLISECOND
             piece = chunk[["unit_id", "dtime", "url", "load_time_ms"]].copy()
         pieces.append(piece)
         if (i + 1) % 10 == 0:
