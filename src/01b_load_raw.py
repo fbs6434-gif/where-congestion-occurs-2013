@@ -104,6 +104,7 @@ def read_csv_to_parquet(csv_path, comment, header_line, kind):
         reader = pd.read_csv(csv_path, names=cols, usecols=usecols,
                              comment=comment if comment else None,
                              chunksize=500_000, engine="c",
+                             low_memory=False,
                              dtype={"unit_id": "int64"})
     else:
         if comment:
@@ -120,6 +121,7 @@ def read_csv_to_parquet(csv_path, comment, header_line, kind):
                 usecols = [0, 1, 2, 3]
             reader = pd.read_csv(csv_path, names=names, usecols=usecols, header=None,
                                  comment="#", chunksize=500_000, engine="c",
+                                 low_memory=False,
                                  dtype={"unit_id": "int64"})
         else:
             # Has header; use names directly.
@@ -129,6 +131,7 @@ def read_csv_to_parquet(csv_path, comment, header_line, kind):
                 usecols = ["unit_id", "dtime", "target", "fetch_time"]
             reader = pd.read_csv(csv_path, usecols=usecols,
                                  chunksize=500_000, engine="c",
+                                 low_memory=False,
                                  dtype={"unit_id": "int64"})
 
     pieces = []

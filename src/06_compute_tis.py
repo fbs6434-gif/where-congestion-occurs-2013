@@ -5,7 +5,8 @@ from scipy.stats import pearsonr
 from config import PROCESSED_DIR, WEBSITES, TIS_R_THRESH, TIS_COUNT_THRESH, MONTH, TIS_MIN_SERIES
 
 def main():
-    aligned = pd.read_parquet(os.path.join(PROCESSED_DIR, "aligned.parquet"))
+    aligned = pd.read_parquet(os.path.join(PROCESSED_DIR, "aligned.parquet"),
+                              columns=["unit_id", "url", "load_time_ms", "throughput_mbps"])
     meta = pd.read_parquet(os.path.join(PROCESSED_DIR, "meta_valid.parquet"))
     valid_ids = set(meta["unit_id"])
     aligned = aligned[aligned["unit_id"].isin(valid_ids)]

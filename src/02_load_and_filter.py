@@ -57,9 +57,9 @@ def load_tcp_chunked(valid_ids, chunksize=500_000):
         all_cols = ["unit_id", "dtime", "target", "address", "fetch_time",
                     "bytes_total", "bytes_sec", "bytes_sec_interval", "warmup_time",
                     "warmup_bytes", "sequence", "threads", "successes", "failures", "location_id"]
-        reader = pd.read_csv(fpath, names=all_cols, usecols=cols, chunksize=chunksize, compression=comp)
+        reader = pd.read_csv(fpath, names=all_cols, usecols=cols, chunksize=chunksize, compression=comp, low_memory=False)
     else:
-        reader = pd.read_csv(fpath, usecols=cols, chunksize=chunksize, compression=comp)
+        reader = pd.read_csv(fpath, usecols=cols, chunksize=chunksize, compression=comp, low_memory=False)
 
     pieces = []
     for i, chunk in enumerate(reader):
@@ -87,9 +87,9 @@ def load_web_chunked(valid_ids, chunksize=500_000):
                     "ttfb_total", "ttfb_min", "ttfb_avg", "ttfb_max",
                     "lookup_total_time", "lookup_min_time", "lookup_avg_time", "lookup_max_time",
                     "successes", "failures", "location_id"]
-        reader = pd.read_csv(fpath, names=all_cols, usecols=cols, chunksize=chunksize, compression=comp)
+        reader = pd.read_csv(fpath, names=all_cols, usecols=cols, chunksize=chunksize, compression=comp, low_memory=False)
     else:
-        reader = pd.read_csv(fpath, usecols=cols, chunksize=chunksize, compression=comp)
+        reader = pd.read_csv(fpath, usecols=cols, chunksize=chunksize, compression=comp, low_memory=False)
 
     pieces = []
     for i, chunk in enumerate(reader):

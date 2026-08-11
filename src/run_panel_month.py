@@ -184,6 +184,18 @@ def merge_into_part(rows, part_csv):
     return len(new_df)
 
 
+def _emit_rows(year, month, dataset, worker, rows, s3):
+    """Merge rows into the worker part CSV and upload to S3. Returns rows."""
+    parts_dir = os.path.join(BASE_DIR, "data", "panel_parts")
+    os.makedirs(parts_dir, exist_ok=True)
+    part_csv = os.path.join(parts_dir, f"{worker}.csv")
+    added = merge_into_part(rows, part_csv)
+    print(f"  merged: {added} rows into {part_csv} (total {len(rows)-added} dup)")
+    s3.upload_file(part_csv, BUCKET, f"{PARTS_PREFIX}/{worker}.csv")
+    print(f"  uploaded panel_parts/{worker}.csv")
+    return rows
+
+
 def process(dataset, year, month, worker, s3, logf):
     tarpath = None
     raw_root = os.path.join(BASE_DIR, "data", "raw", f"{dataset}-{year}-{month:02d}")
@@ -211,6 +223,27 @@ def process(dataset, year, month, worker, s3, logf):
                      "04_align_time_series.py", "05_compute_rc.py",
                      "06_compute_tis.py", "07_aggregate.py"]
         else:
+            # Some raw months are missing the tcp/web CSVs entirely in FCC's
+            # archive (e.g. 2016-07 has no curr_webget; 2023-03 tarball is
+            # truncated). Without both tcp and web there are no aligned pairs,
+            # so RC/TIS can't be computed. Detect this up front and emit 0-unit
+            # rows, keeping the panel structurally complete.
+            with tarfile.open(tarpath, "r:gz") as tar:
+                bases = [os.path.basename(m.name) for m in tar]
+            has_tcp = any(b.startswith("curr_httpgetmt") and "httpgetmt6" not in b
+                          and b.endswith(".csv") for b in bases)
+            has_web = any(b.startswith("curr_webget") and "webget6" not in b
+                          and b.endswith(".csv") for b in bases)
+            if not has_tcp or not has_web:
+                print(f"  raw month missing members tcp={has_tcp} web={has_web}; "
+                      f"emitting 0-unit rows")
+                rows = [{"data_year": year, "data_month": month, "dataset": dataset,
+                         "technology": t, "n_units": 0, "rc": 0, "tis": 0}
+                        for t in KEEP_TECH + ["overall"]]
+                for r in rows:
+                    print(f"  {r['technology']:>8}: n=0 rc=0 tis=0")
+                return bool(_emit_rows(year, month, dataset, worker, rows, s3))
+
             os.makedirs(raw_bk_root, exist_ok=True)
             shutil.move(tarpath, os.path.join(raw_bk_root, row["filename"]))
             tarpath = None
@@ -218,9 +251,24 @@ def process(dataset, year, month, worker, s3, logf):
                      "04_align_time_series.py", "05_compute_rc.py",
                      "06_compute_tis.py", "07_aggregate.py"]
 
-        for step in steps:
+        for i, step in enumerate(steps):
             print(f"  running {step}")
             run_step(step, env, logf)
+            # For raw runs, the tcp/web load step produces web.parquet. If a
+            # month has NO web measurements in FCC's archive (missing or empty
+            # curr_webget), RC/TIS cannot be computed: there are no tcp+web
+            # aligned pairs. Emit 0-unit rows so the panel stays structurally
+            # complete and the real data gap is visible.
+            if dataset == "raw" and i == 0:
+                web_path = os.path.join(proc_root, "web.parquet")
+                if os.path.isfile(web_path) and len(pd.read_parquet(web_path)) == 0:
+                    print("  no web measurements this month; emitting 0-unit rows")
+                    rows = [{"data_year": year, "data_month": month, "dataset": dataset,
+                             "technology": t, "n_units": 0, "rc": 0, "tis": 0}
+                            for t in KEEP_TECH + ["overall"]]
+                    for r in rows:
+                        print(f"  {r['technology']:>8}: n=0 rc=0 tis=0")
+                    return bool(_emit_rows(year, month, dataset, worker, rows, s3))
 
         os.makedirs(os.path.join(out_root, "tables"), exist_ok=True)
 
@@ -228,14 +276,7 @@ def process(dataset, year, month, worker, s3, logf):
         for r in rows:
             print(f"  {r['technology']:>8}: n={r['n_units']} rc={r['rc']} tis={r['tis']}")
 
-        parts_dir = os.path.join(BASE_DIR, "data", "panel_parts")
-        os.makedirs(parts_dir, exist_ok=True)
-        part_csv = os.path.join(parts_dir, f"{worker}.csv")
-        added = merge_into_part(rows, part_csv)
-        print(f"  merged: {added} rows into {part_csv}")
-
-        s3.upload_file(part_csv, BUCKET, f"{PARTS_PREFIX}/{worker}.csv")
-        print(f"  uploaded panel_parts/{worker}.csv")
+        _emit_rows(year, month, dataset, worker, rows, s3)
         return True
     finally:
         shutil.rmtree(raw_root, ignore_errors=True)
@@ -269,6 +310,7 @@ def main():
             logf.write(f"=== {year}-{month:02d} {dataset} FAILED: {e}\n")
             ok = False
     print("RESULT:", "OK" if ok else "FAIL")
+    sys.exit(0 if ok else 1)
 
 
 if __name__ == "__main__":
