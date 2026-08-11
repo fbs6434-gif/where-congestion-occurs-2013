@@ -189,9 +189,18 @@ def _emit_rows(year, month, dataset, worker, rows, s3):
     parts_dir = os.path.join(BASE_DIR, "data", "panel_parts")
     os.makedirs(parts_dir, exist_ok=True)
     part_csv = os.path.join(parts_dir, f"{worker}.csv")
+    # Pull the latest upstream part first: worker-local state can be stale after
+    # a rerun on a reused worker, and rebuilding from S3 prevents silently
+    # dropping months that only exist upstream.
+    s3_key = f"{PARTS_PREFIX}/{worker}.csv"
+    try:
+        s3.download_file(BUCKET, s3_key, part_csv)
+        print("  pulled latest part from S3 before merging")
+    except Exception:
+        print("  no upstream part; starting fresh part")
     added = merge_into_part(rows, part_csv)
     print(f"  merged: {added} rows into {part_csv} (total {len(rows)-added} dup)")
-    s3.upload_file(part_csv, BUCKET, f"{PARTS_PREFIX}/{worker}.csv")
+    s3.upload_file(part_csv, BUCKET, s3_key)
     print(f"  uploaded panel_parts/{worker}.csv")
     return rows
 
