@@ -5,6 +5,14 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # --- Year-specific settings (override with YEAR env var) ---
 YEAR = int(os.environ.get("YEAR", "2011"))
 
+# --- Monthly panel mode: drive everything from the manifest (override with
+# MONTH=<int> env var). In this mode DATASET selects raw vs validated. ---
+import monthly_config as _mc
+
+_MONTH_ENV = os.environ.get("MONTH", "").strip()
+_MONTHLY = _MONTH_ENV.isdigit()
+DATASET = os.environ.get("DATASET", "validated").strip().lower()
+
 # Map: year -> (label, month_dir, tcp_csv, web_csv, has_header, meta_source, meta_engine_or_none)
 # has_header: whether TCP/WEB CSVs have a header row (False for 2014 raw data only)
 # meta_source: local filename (relative to RAW_DIR) or URL
@@ -236,9 +244,9 @@ YEARS_CONFIG = {
 }
 
 # Resolve current year config
-YC = YEARS_CONFIG[YEAR]
-MONTH = YC["month"].lower()
-MONTH_NUM = YC["month_num"]
+YC = YEARS_CONFIG[YEAR] if not _MONTHLY else None
+MONTH = YC["month"].lower() if not _MONTHLY else None
+MONTH_NUM = YC["month_num"] if not _MONTHLY else None
 
 # Multi-month reproduction of the 2011 paper (Mar-Jun): select month with MONTH env var.
 _MONTH = os.environ.get("MONTH", "").strip().lower()
@@ -248,26 +256,47 @@ if YEAR == 2011 and _MONTH in ("march", "april", "may", "june"):
         "march": "03", "april": "04", "may": "05", "june": "06",
     }[_MONTH]
 
-RAW_DIR = os.path.join(BASE_DIR, "data", "raw", str(YEAR), YC["month_dir"])
-PROCESSED_DIR = os.path.join(BASE_DIR, "data", "processed", str(YEAR))
-OUTPUT_DIR = os.path.join(BASE_DIR, "output", str(YEAR))
+if _MONTHLY:
+    YEAR_MONTH = int(_MONTH_ENV)
+    _row = _mc.tarball(DATASET, YEAR, YEAR_MONTH)
+    _profile_name, _profile_key, _profile_engine, _profile_cols = _mc.profile(YEAR, YEAR_MONTH)
+    MONTH = _mc.MONTH_NAMES[YEAR_MONTH].lower()
+    MONTH_NUM = f"{YEAR_MONTH:02d}"
+    RAW_DIR, PROCESSED_DIR, OUTPUT_DIR = _mc.dirs(DATASET, YEAR, YEAR_MONTH)
+    TCP_CSV = "curr_httpgetmt.csv"
+    WEB_CSV = "curr_webget.csv"
+    META_SOURCE = _profile_name
+    META_S3_KEY = _profile_key
+    META_ENGINE = _profile_engine or ""
+    META_COLS = _profile_cols
+    _META_SOURCE_OVERRIDE = os.environ.get("META_SOURCE_OVERRIDE", "").strip()
+    if _META_SOURCE_OVERRIDE:
+        META_SOURCE = _META_SOURCE_OVERRIDE
+    HAS_HEADER = (YEAR, YEAR_MONTH) not in _mc.VALIDATED_NO_HEADER
+    TARBALL_URL = _row["url"]
+    TARBALL_S3_KEY = _row["s3_key"]
+    TARBALL_NAME = _row["filename"]
+else:
+    RAW_DIR = os.path.join(BASE_DIR, "data", "raw", str(YEAR), YC["month_dir"])
+    PROCESSED_DIR = os.path.join(BASE_DIR, "data", "processed", str(YEAR))
+    OUTPUT_DIR = os.path.join(BASE_DIR, "output", str(YEAR))
 
-if YEAR == 2011 and _MONTH in ("march", "april", "may", "june"):
-    PROCESSED_DIR = os.path.join(BASE_DIR, "data", "processed", f"2011_{_MONTH}")
-    OUTPUT_DIR = os.path.join(BASE_DIR, "output", f"2011_{_MONTH}")
+    if YEAR == 2011 and _MONTH in ("march", "april", "may", "june"):
+        PROCESSED_DIR = os.path.join(BASE_DIR, "data", "processed", f"2011_{_MONTH}")
+        OUTPUT_DIR = os.path.join(BASE_DIR, "output", f"2011_{_MONTH}")
 
-TCP_CSV = YC["tcp_csv"]
-WEB_CSV = YC["web_csv"]
-META_SOURCE = YC["meta_source"]
-# Override the unit-profile source with a local file relative to RAW_DIR
-# (used by src/23_process_validated_s3.py, which stages profiles from S3).
-_META_SOURCE_OVERRIDE = os.environ.get("META_SOURCE_OVERRIDE", "").strip()
-if _META_SOURCE_OVERRIDE:
-    META_SOURCE = _META_SOURCE_OVERRIDE
-META_ENGINE = YC["meta_engine"]
-META_COLS = YC["meta_cols"]
-HAS_HEADER = YC["has_header"]
-TARBALL_URL = YC["tarball_url"]
+    TCP_CSV = YC["tcp_csv"]
+    WEB_CSV = YC["web_csv"]
+    META_SOURCE = YC["meta_source"]
+    # Override the unit-profile source with a local file relative to RAW_DIR
+    # (used by src/23_process_validated_s3.py, which stages profiles from S3).
+    _META_SOURCE_OVERRIDE = os.environ.get("META_SOURCE_OVERRIDE", "").strip()
+    if _META_SOURCE_OVERRIDE:
+        META_SOURCE = _META_SOURCE_OVERRIDE
+    META_ENGINE = YC["meta_engine"]
+    META_COLS = YC["meta_cols"]
+    HAS_HEADER = YC["has_header"]
+    TARBALL_URL = YC["tarball_url"]
 
 MONTHS = [MONTH]
 

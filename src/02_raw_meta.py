@@ -9,12 +9,10 @@ kept in the overall figures but excluded from the per-technology split.
 import os
 import pandas as pd
 from config import (PROCESSED_DIR, META_SOURCE, META_ENGINE, META_COLS, YEAR)
-from raw_config import RAWS
 
 UNKNOWN = "unknown"
 
 def build_meta():
-    rel = RAWS[YEAR]
     # All raw unit ids.
     tcp = pd.read_parquet(os.path.join(PROCESSED_DIR, "tcp.parquet"))["unit_id"]
     web = pd.read_parquet(os.path.join(PROCESSED_DIR, "web.parquet"))["unit_id"]

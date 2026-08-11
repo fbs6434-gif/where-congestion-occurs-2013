@@ -3,6 +3,8 @@ import pandas as pd
 import numpy as np
 from config import PROCESSED_DIR, MONTHS, MONTH, SPEED_TIER_VARIATION_THRESH, OUTPUT_DIR
 
+SKIP_PLAN_CHANGE_FILTER = os.environ.get("SKIP_PLAN_CHANGE_FILTER", "").strip().lower() in ("1", "true", "yes")
+
 def main():
     tcp = pd.read_parquet(os.path.join(PROCESSED_DIR, "tcp.parquet"))
     meta = pd.read_parquet(os.path.join(PROCESSED_DIR, "meta.parquet"))
@@ -19,7 +21,7 @@ def main():
         if mean_dm == 0:
             continue
         variation = (daily_max.max() - daily_max.min()) / mean_dm
-        if variation > SPEED_TIER_VARIATION_THRESH:
+        if not SKIP_PLAN_CHANGE_FILTER and variation > SPEED_TIER_VARIATION_THRESH:
             continue
         speed_tier = mean_dm
         valid_units.append({"unit_id": unit_id, "month": MONTH, "speed_tier": speed_tier})
