@@ -4,7 +4,6 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 CSV = "/home/jovyan/work/project/output/compare/tables/comparison_by_tech.csv"
-OVERALL_CSV = "/home/jovyan/work/project/output/compare/tables/comparison_overall.csv"
 
 # Paper (Genin & Splett 2013, March 2011) published ranges, from paper + ANALYSIS.md
 PAPER = {
@@ -12,7 +11,7 @@ PAPER = {
     "TIS_pct": {"cable": (3, 4), "dsl": (5, 7)},
 }
 
-THEM = {"cable": "Cable", "dsl": "DSL", "overall": "Overall"}
+THEM = {"cable": "Cable", "dsl": "DSL"}
 
 def load_2011():
     out = {"cable": {}, "dsl": {}}
@@ -20,10 +19,6 @@ def load_2011():
         for row in csv.DictReader(f):
             if row["year"] == "2011" and row["technology"] in out:
                 out[row["technology"]] = {"RC": float(row["RC%"]), "TIS": float(row["TIS%"])}
-    with open(OVERALL_CSV) as f:
-        for row in csv.DictReader(f):
-            if row["year"] == "2011":
-                out["overall"] = {"RC": float(row["RC%"]), "TIS": float(row["TIS%"])}
     return out
 
 plt.rcParams.update({
@@ -39,10 +34,10 @@ plt.rcParams.update({
 })
 
 def make(metric_key, title, ymax, data):
-    fig, axes = plt.subplots(1, 3, figsize=(10.5, 3), sharey=True)
+    fig, axes = plt.subplots(1, 2, figsize=(8, 3), sharey=True)
     colors = {"Paper (2013)": "#009b8a", "Our replication": "#6dc5b8"}
 
-    for ax, tech in zip(axes, ["cable", "dsl", "overall"]):
+    for ax, tech in zip(axes, ["cable", "dsl"]):
         ours = data[tech][metric_key.split("_")[0]]
         ax.set_title(THEM[tech], fontweight="bold")
         if tech == "cable":
@@ -52,25 +47,15 @@ def make(metric_key, title, ymax, data):
         ax.spines["right"].set_visible(False)
         ax.grid(axis="y", alpha=0.3)
 
-        if tech == "overall":
-            # paper reports no aggregate prevalence; show only our number
-            ax.bar(["Our replication"], [ours], color="#6dc5b8",
-                   edgecolor="black", linewidth=0.7, width=0.55)
-            ax.text(0, ours + 0.3, f"{ours:.1f}%", ha="center", va="bottom",
-                    fontsize=10, fontweight="bold")
-            ax.annotate("not reported\nin paper", xy=(0, ours + 0.3), xytext=(0, ours + 2.2),
-                        ha="center", fontsize=8, color="#555555",
-                        arrowprops=dict(arrowstyle="-", color="#999999", lw=0.8))
-        else:
-            lo, hi = PAPER[metric_key][tech]
-            ctr = (lo + hi) / 2
-            ax.bar(["Paper (2013)", "Our replication"], [ctr, ours],
-                   color=[colors["Paper (2013)"], colors["Our replication"]],
-                   edgecolor="black", linewidth=0.7, width=0.55)
-            ax.text(0, hi + 0.5, f"{lo:.0f}\u2013{hi:.0f}%", ha="center", va="bottom",
-                    fontsize=10, fontweight="bold")
-            ax.text(1, ours + 0.3, f"{ours:.1f}%", ha="center", va="bottom",
-                    fontsize=10, fontweight="bold")
+        lo, hi = PAPER[metric_key][tech]
+        ctr = (lo + hi) / 2
+        ax.bar(["Paper (2013)", "Our replication"], [ctr, ours],
+               color=[colors["Paper (2013)"], colors["Our replication"]],
+               edgecolor="black", linewidth=0.7, width=0.55)
+        ax.text(0, hi + 0.5, f"{lo:.0f}\u2013{hi:.0f}%", ha="center", va="bottom",
+                fontsize=10, fontweight="bold")
+        ax.text(1, ours + 0.3, f"{ours:.1f}%", ha="center", va="bottom",
+                fontsize=10, fontweight="bold")
 
     fig.suptitle(title, fontsize=15, fontweight="bold", y=1.02)
     fig.tight_layout()
