@@ -44,11 +44,7 @@ def make(metric_key, title, ymax, data):
 
         bars = ax.bar(["Paper (2013)", "Our replication"], [ctr, ours],
                       color=[colors["Paper (2013)"], colors["Our replication"]],
-                      edgecolor="black", linewidth=0.7, width=0.55,
-                      yerr=[[ctr - lo, 0], [hi - ctr, 0]], capsize=4, error_kw={"lw": 1.0})
-
-        ax.errorbar(0, ctr, yerr=[[ctr - lo], [hi - ctr]], fmt="none", ecolor="black",
-                    capsize=4, lw=1.0)
+                      edgecolor="black", linewidth=0.7, width=0.55)
         ax.text(0, hi + 0.5, f"{lo:.0f}\u2013{hi:.0f}%", ha="center", va="bottom",
                 fontsize=10, fontweight="bold")
         ax.text(1, ours + 0.3, f"{ours:.1f}%", ha="center", va="bottom",
