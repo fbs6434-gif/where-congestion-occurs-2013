@@ -1,24 +1,25 @@
+import csv
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-data = {
-    "RC_pct": {
-        "Original":       {"Overall": 21.3, "Cable": 26.7, "DSL": 11.5},
-        "Our replication": {"Overall": 17.2, "Cable": 24.2, "DSL": 7.1},
-    },
-    "TIS_pct": {
-        "Original":       {"Overall": 4.5, "Cable": 3.5, "DSL": 6.4},
-        "Our replication": {"Overall": 2.6, "Cable": 2.1, "DSL": 3.4},
-    },
+CSV = "/home/jovyan/work/project/output/compare/tables/comparison_by_tech.csv"
+
+# Paper (Genin & Splett 2013, March 2011) published ranges, from paper + ANALYSIS.md
+PAPER = {
+    "RC_pct": {"cable": (27, 32), "dsl": (9, 12)},
+    "TIS_pct": {"cable": (3, 4), "dsl": (5, 7)},
 }
 
-sources = ["Original", "Our replication"]
-techs = ["Overall", "Cable", "DSL"]
-color_maps = {
-    "RC_pct": ["#009b8a", "#6dc5b8"],
-    "TIS_pct": ["#59B2D1", "#a8d8ea"],
-}
+THEM = {"cable": "Cable", "dsl": "DSL"}
+
+def load_2011():
+    out = {"cable": {}, "dsl": {}}
+    with open(CSV) as f:
+        for row in csv.DictReader(f):
+            if row["year"] == "2011" and row["technology"] in out:
+                out[row["technology"]] = {"RC": float(row["RC%"]), "TIS": float(row["TIS%"])}
+    return out
 
 plt.rcParams.update({
     "font.family": "sans-serif",
@@ -32,22 +33,30 @@ plt.rcParams.update({
     "savefig.bbox": "tight",
 })
 
-for metric_key, title in [("RC_pct", "Recurrent Congestion"), ("TIS_pct", "Congestion in Network Periphery")]:
-    fig, axes = plt.subplots(1, 3, figsize=(8, 3), sharey=True)
-    bar_colors = color_maps[metric_key]
+def make(metric_key, title, ymax, data):
+    fig, axes = plt.subplots(1, 2, figsize=(8, 3), sharey=True)
+    colors = {"Paper (2013)": "#009b8a", "Our replication": "#6dc5b8"}
 
-    for ax, tech in zip(axes, techs):
-        vals = [data[metric_key][s][tech] for s in sources]
-        bars = ax.bar(sources, vals, color=bar_colors, edgecolor="black", linewidth=0.7, width=0.55)
+    for ax, tech in zip(axes, ["cable", "dsl"]):
+        lo, hi = PAPER[metric_key][tech]
+        ctr = (lo + hi) / 2
+        ours = data[tech][metric_key.split("_")[0]]
 
-        for bar, v in zip(bars, vals):
-            ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.3,
-                    f"{v:.1f}%", ha="center", va="bottom", fontsize=10, fontweight="bold")
+        bars = ax.bar(["Paper (2013)", "Our replication"], [ctr, ours],
+                      color=[colors["Paper (2013)"], colors["Our replication"]],
+                      edgecolor="black", linewidth=0.7, width=0.55,
+                      yerr=[[ctr - lo, 0], [hi - ctr, 0]], capsize=4, error_kw={"lw": 1.0})
 
-        ax.set_title(tech, fontweight="bold")
-        if tech == "Overall":
+        ax.errorbar(0, ctr, yerr=[[ctr - lo], [hi - ctr]], fmt="none", ecolor="black",
+                    capsize=4, lw=1.0)
+        ax.text(0, hi + 0.5, f"{lo:.0f}\u2013{hi:.0f}%", ha="center", va="bottom",
+                fontsize=10, fontweight="bold")
+        ax.text(1, ours + 0.3, f"{ours:.1f}%", ha="center", va="bottom",
+                fontsize=10, fontweight="bold")
+
+        ax.set_title(THEM[tech], fontweight="bold")
+        if tech == "cable":
             ax.set_ylabel("Prevalence (%)")
-        ymax = 35 if metric_key == "RC_pct" else 15
         ax.set_ylim(0, ymax)
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
@@ -55,7 +64,15 @@ for metric_key, title in [("RC_pct", "Recurrent Congestion"), ("TIS_pct", "Conge
 
     fig.suptitle(title, fontsize=15, fontweight="bold", y=1.02)
     fig.tight_layout()
-    fname = f"bar_{metric_key}.png"
-    fig.savefig(f"/home/jovyan/work/project/output/{fname}")
+    fname = f"/home/jovyan/work/project/output/bar_{metric_key}.png"
+    fig.savefig(fname)
     plt.close()
-    print(f"Saved {fname}")
+    print("Saved", fname)
+
+def main():
+    data = load_2011()
+    make("RC_pct", "Recurrent Congestion", 35, data)
+    make("TIS_pct", "Congestion in Network Periphery", 15, data)
+
+if __name__ == "__main__":
+    main()
