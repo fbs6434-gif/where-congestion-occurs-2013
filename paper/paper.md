@@ -7,8 +7,10 @@ abstract: >
   ISP's *initial segment* (the last-mile access link) or *beyond* it (the
   middle mile and public Internet). Using FCC Measuring Broadband America
   (SamKnows) data, they found that cable access suffered far more recurrent
-  congestion than DSL, and that a tight initial segment almost always coincided
-  with recurrent congestion on cable. We reproduce their pipeline and extend it
+  congestion than DSL, but that most recurrent congestion was constrained
+  *beyond* the initial segment: cable's was largely middle-mile or
+  public-Internet, while DSL's sat predominantly on the access link itself.
+  We reproduce their pipeline and extend it
   to one month per year from 2011 to 2023, on both the validated fleet and the
   full raw measurement population. The headline result is a structural change
   in the Internet itself: **cable recurrent congestion collapsed ~3--7×** while
@@ -42,9 +44,12 @@ measure both. Their two diagnostics:
   tracks the *benchmark* throughput test closely, implying the bottleneck is on
   the access link itself, not a remote site.
 
-Their finding: cable access was the congested technology (27--32% RC) and its
-congestion sat on the initial segment, while DSL congestion was less frequent
-but more likely to be an initial-segment problem.
+Their finding: cable access was the congested technology (27--32% RC) but its
+congestion was mostly *not* on the initial segment --- the majority of
+recurrently congested cable connections were constrained beyond it (middle
+mile, peering, public Internet), except for a few very-high-RC cable ISPs that
+were last-mile limited. DSL congestion was less frequent (9--12% RC) but sat
+predominantly on the initial segment.
 
 We reproduce their method and extend it across **thirteen years** (2011--2023)
 of the FCC's measurement program. This is possible because the program ran for
@@ -156,11 +161,13 @@ congestion is fixable where the incentive to fix exists.
 
 ## 4.2 The Internet's congestion model changed
 
-In 2011, the congestion story was "your ISP's last mile is too small." A decade
-later, last-mile cable capacity is generally adequate, and the persistent
-congestion has moved to the technologies and segments that did not get
-investment (legacy DSL copper) and to problems *beyond* the access network —
-transit, peering, and CDN/edge structure. A "where is congestion?" study run
+In 2011, the reflexive congestion story was "your ISP's last mile is too
+small" — and Genin and Splett showed this was literally true for DSL, but
+mostly *not* for cable, where most recurrent congestion already sat beyond the
+access link. A decade later, last-mile cable capacity is generally adequate,
+and the persistent congestion remains concentrated where investment did not
+arrive: legacy DSL copper and problems *beyond* the access network — transit,
+peering, and CDN/edge structure. A "where is congestion?" study run
 today would find less of it on the access link and more of it at the edges of
 the network the ISP doesn't control. The unit of analysis has changed: from
 the last mile to the middle mile.
@@ -195,8 +202,12 @@ of a healthy network.
 # 6. Conclusion
 
 Between the early 2010s and 2023, the general model of where Internet
-congestion lives changed materially. In 2011 the answer was "cable's last
-mile"; by 2023 it is "DSL copper and beyond the access network." The data
+congestion lives changed materially. The 2011 answer, per Genin and Splett, was
+split: recalcitrant congestion sat on DSL's last mile, while most *cable*
+congestion was already beyond the access link, in the middle mile and public
+Internet. A decade later the cable-side congestion has collapsed with capacity
+investment, so the persistent answer is "DSL copper and beyond the access
+network." The data
 demonstrate that congestion is a measurable, fixable, and *investable*
 property of broadband — and that the failure to upgrade DSL has left a
 persistent, measurable equity gap. The trends are important because they turn
